@@ -17,12 +17,15 @@ from app.core.cache import InMemoryCache
 from app.core.http import AsyncHttpClient
 from app.core.logging import get_logger, setup_logging
 from app.evidence import EvidenceService, EvidenceValidator, InMemoryEvidenceRepository
+from app.graph.deps import ResearchOrchestrationDeps
+from app.graph.graph import build_investigation_graph
 from app.services.external import (
     DataGovInProvider,
     NominatimClient,
     OpenMeteoClient,
     OverpassBusinessSearchProvider,
 )
+from app.services.investigation import InvestigationService
 
 logger = get_logger(__name__)
 
@@ -88,6 +91,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         evidence_repository,
         evidence_validator,
     )
+
+    orchestration_deps = ResearchOrchestrationDeps(
+        weather_agent=app.state.weather_agent,
+        geography_agent=app.state.geography_agent,
+        competition_agent=app.state.competition_agent,
+        government_data_agent=app.state.government_data_agent,
+        evidence_service=app.state.evidence_service,
+        nominatim=nominatim,
+    )
+    investigation_graph = build_investigation_graph(deps=orchestration_deps)
+    app.state.orchestration_deps = orchestration_deps
+    app.state.investigation_graph = investigation_graph
+    app.state.investigation_service = InvestigationService(graph=investigation_graph)
 
     try:
         yield

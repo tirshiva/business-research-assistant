@@ -8,6 +8,7 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from app.core.exceptions import LLMStructuredOutputError, PlannerError
+from app.graph.deps import ResearchOrchestrationDeps
 from app.graph.graph import build_investigation_graph
 from app.graph.state import create_initial_state
 from app.llm.base import LLMProvider
@@ -188,12 +189,15 @@ async def test_planner_retry_succeeds_on_second_attempt() -> None:
 @pytest.mark.asyncio
 async def test_graph_planner_integration_with_mock_llm() -> None:
     llm = MockLLMProvider(payload=_valid_plan_payload())
-    graph = build_investigation_graph(llm=llm)
+    graph = build_investigation_graph(
+        llm=llm,
+        deps=ResearchOrchestrationDeps.mock(),
+    )
     service = InvestigationService(graph=graph)
 
     result = await service.run({"user_query": SAMPLE_QUERY})
 
-    assert result.status == "planned"
+    assert result.status in {"completed", "partial"}
     assert result.business_type == "cloud kitchen"
     assert result.location == "Sector 62, Noida"
     assert result.target_customer == "office workers"
@@ -205,6 +209,9 @@ async def test_graph_planner_integration_with_mock_llm() -> None:
         "weather",
     ]
     assert result.metadata["research_plan"]["objective"] == "location evaluation"
+    assert "competition" in result.routed_agents
+    assert "geography" in result.routed_agents
+    assert "weather" in result.routed_agents
     assert llm.calls == 1
 
 
@@ -213,7 +220,10 @@ async def test_graph_records_planner_failure() -> None:
     llm = MockLLMProvider(
         payload=_valid_plan_payload(research_tasks=["not_a_real_task"])
     )
-    graph = build_investigation_graph(llm=llm)
+    graph = build_investigation_graph(
+        llm=llm,
+        deps=ResearchOrchestrationDeps.mock(),
+    )
     initial = create_initial_state(SAMPLE_QUERY)
 
     final_state = await graph.ainvoke(initial)

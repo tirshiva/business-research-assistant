@@ -2,24 +2,34 @@
 
 from __future__ import annotations
 
+import operator
 import uuid
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Annotated, Any, Literal, NotRequired, TypedDict
 
 InvestigationStatus = Literal[
     "pending",
     "query_analyzed",
     "planned",
+    "researching",
     "completed",
+    "partial",
     "failed",
 ]
 
 
-class InvestigationState(TypedDict):
-    """Shared state flowing through the investigation graph.
+def _merge_unique_strings(
+    left: list[str] | None,
+    right: list[str] | None,
+) -> list[str]:
+    merged: list[str] = []
+    for item in [*(left or []), *(right or [])]:
+        if item not in merged:
+            merged.append(item)
+    return merged
 
-    Fields that later modules will populate (evidence, scoring, recommendation,
-    etc.) are present from the start so the graph contract remains stable.
-    """
+
+class InvestigationState(TypedDict):
+    """Shared state flowing through the investigation graph."""
 
     investigation_id: str
     user_query: str
@@ -28,6 +38,12 @@ class InvestigationState(TypedDict):
     objective: str | None
     target_customer: str | None
     research_plan: list[str]
+    latitude: float | None
+    longitude: float | None
+    routed_agents: list[str]
+    agent_results: Annotated[list[dict[str, Any]], operator.add]
+    agent_runs: Annotated[list[dict[str, Any]], operator.add]
+    unavailable_dimensions: Annotated[list[str], _merge_unique_strings]
     evidence: list[dict[str, Any]]
     contradictions: list[str]
     analysis: str | None
@@ -40,6 +56,19 @@ class InvestigationState(TypedDict):
     metadata: NotRequired[dict[str, Any]]
 
 
+class AgentWorkItem(TypedDict):
+    """Payload sent to a parallel research worker via LangGraph Send."""
+
+    investigation_id: str
+    user_query: str
+    business_type: str | None
+    location: str | None
+    target_customer: str | None
+    latitude: float | None
+    longitude: float | None
+    agent_name: str
+
+
 def create_initial_state(user_query: str) -> InvestigationState:
     """Build a valid initial :class:`InvestigationState` for graph execution."""
     return InvestigationState(
@@ -50,6 +79,12 @@ def create_initial_state(user_query: str) -> InvestigationState:
         objective=None,
         target_customer=None,
         research_plan=[],
+        latitude=None,
+        longitude=None,
+        routed_agents=[],
+        agent_results=[],
+        agent_runs=[],
+        unavailable_dimensions=[],
         evidence=[],
         contradictions=[],
         analysis=None,

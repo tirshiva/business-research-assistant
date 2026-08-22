@@ -13,6 +13,7 @@ Current modules:
 - **Module 04** — Research planner (structured ResearchPlan via LLM abstraction)
 - **Module 05** — Real-world research agents (weather, geography, competition, government data)
 - **Module 06** — Evidence and provenance system
+- **Module 07** — Multi-agent LangGraph orchestration
 
 ## Features
 
@@ -28,6 +29,7 @@ Current modules:
 - Research planner producing validated `ResearchPlan` (local or Bedrock LLM)
 - Specialized research agents with typed I/O, tools, confidence, and sources
 - Evidence repository with validation, contradictions, and claim provenance
+- Multi-agent LangGraph orchestration with dynamic routing and parallel research
 - pytest coverage with mocked HTTP/LLM; optional live integration tests
 - Docker + docker-compose for local development
 - Ruff for linting and formatting
@@ -95,9 +97,15 @@ docker compose up --build
 ```python
 from app.services.investigation import InvestigationService
 from app.graph.graph import build_investigation_graph
+from app.graph.deps import ResearchOrchestrationDeps
 from app.llm.local import LocalLLMProvider
 
-service = InvestigationService(graph=build_investigation_graph(llm=LocalLLMProvider()))
+service = InvestigationService(
+    graph=build_investigation_graph(
+        llm=LocalLLMProvider(),
+        deps=ResearchOrchestrationDeps.mock(),
+    )
+)
 result = await service.run(
     {
         "user_query": (
@@ -106,10 +114,8 @@ result = await service.run(
         )
     }
 )
-# result.status == "planned"
-# result.business_type == "cloud kitchen"
-# result.location == "Sector 62, Noida"
-# result.research_plan == ["demographics", "competition", ...]
+# result.status in {"completed", "partial"}
+# result.routed_agents / result.agent_results / result.evidence
 ```
 
 ## Using the external clients
@@ -171,8 +177,10 @@ app/
     logging.py             # Centralized logging
   graph/
     state.py               # InvestigationState TypedDict
-    nodes/                 # query_analyzer, planner
-    graph.py               # START → query_analyzer → planner → END
+    nodes/                 # analyzer, planner, router, research, evidence
+    graph.py               # Multi-agent orchestration graph
+    routing.py             # Plan task → agent mapping
+    deps.py                # Injected agent/evidence dependencies
   agents/                  # weather, geography, competition, government_data
   evidence/                # Evidence models, repository, validator, service
   llm/                     # LLMProvider abstraction (local, bedrock)
@@ -188,9 +196,8 @@ docs/                      # Module documentation
 
 ## Out of scope (later modules)
 
-- Multi-agent orchestration of research tasks inside LangGraph
-- Business scoring / recommendations
-- RAG / document retrieval
+- Opportunity scoring / final recommendations
+- RAG / document retrieval agents
 - Frontend
 
 ## License

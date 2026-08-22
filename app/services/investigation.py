@@ -24,7 +24,7 @@ class InvestigationService:
         self,
         payload: InvestigationRequest | dict[str, str],
     ) -> InvestigationResult:
-        """Execute START → query_analyzer → planner → END and return validated state."""
+        """Execute the multi-agent investigation graph and return validated state."""
         request = self._validate_request(payload)
         initial_state = create_initial_state(request.user_query)
 

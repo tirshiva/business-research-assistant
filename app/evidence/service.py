@@ -10,6 +10,7 @@ from app.core.exceptions import EvidenceValidationError
 from app.core.logging import get_logger
 from app.evidence.models import (
     ClaimKind,
+    Contradiction,
     Evidence,
     EvidenceValidationResult,
     ReliabilityClass,
@@ -151,6 +152,17 @@ class EvidenceService:
     ) -> list[Evidence]:
         """Return all evidence for an investigation."""
         return await self._repository.list_by_investigation(investigation_id)
+
+    async def list_contradictions(
+        self,
+        investigation_id: str,
+    ) -> list[Contradiction]:
+        """Return recorded contradictions for an investigation."""
+        return await self._repository.list_contradictions(investigation_id)
+
+    def aggregate_confidence(self, evidence_items: list[Evidence]) -> float:
+        """Aggregate confidence across evidence items."""
+        return self._validator.aggregate_confidence(evidence_items)
 
 
 def evidence_from_agent_result(

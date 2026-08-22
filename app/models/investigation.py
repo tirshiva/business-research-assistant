@@ -39,6 +39,12 @@ class InvestigationResult(BaseModel):
     objective: str | None = None
     target_customer: str | None = None
     research_plan: list[str] = Field(default_factory=list)
+    latitude: float | None = None
+    longitude: float | None = None
+    routed_agents: list[str] = Field(default_factory=list)
+    agent_results: list[dict[str, Any]] = Field(default_factory=list)
+    agent_runs: list[dict[str, Any]] = Field(default_factory=list)
+    unavailable_dimensions: list[str] = Field(default_factory=list)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
     contradictions: list[str] = Field(default_factory=list)
     analysis: str | None = None
@@ -51,7 +57,9 @@ class InvestigationResult(BaseModel):
         "pending",
         "query_analyzed",
         "planned",
+        "researching",
         "completed",
+        "partial",
         "failed",
     ]
     metadata: dict[str, Any] = Field(default_factory=dict)
