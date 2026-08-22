@@ -9,6 +9,7 @@ from app.services.external.government_data import (
     GovernmentDataProvider,
     GovernmentDatasetMetadata,
 )
+from app.services.external.geocoding import FallbackGeocoder
 from app.services.external.nominatim import NominatimClient
 from app.services.external.open_meteo import OpenMeteoClient
 from app.services.external.overpass import OverpassBusinessSearchProvider
@@ -17,6 +18,7 @@ __all__ = [
     "BusinessListing",
     "BusinessSearchProvider",
     "DataGovInProvider",
+    "FallbackGeocoder",
     "GovernmentDataProvider",
     "GovernmentDatasetMetadata",
     "NominatimClient",

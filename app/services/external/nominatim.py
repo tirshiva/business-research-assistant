@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from typing import Any
 
@@ -135,13 +136,18 @@ class NominatimClient:
 
     async def _request(self, path: str, *, params: dict[str, Any]) -> Any:
         await self._throttle()
+        headers = {
+            "User-Agent": self._user_agent,
+            "Accept": "application/json",
+            "Accept-Language": "en",
+        }
+        email = _email_from_user_agent(self._user_agent)
+        if email:
+            headers["From"] = email
         return await self._http.get(
             f"{self._base_url}{path}",
             params=params,
-            headers={
-                "User-Agent": self._user_agent,
-                "Accept": "application/json",
-            },
+            headers=headers,
             provider=PROVIDER,
         )
 
@@ -204,6 +210,11 @@ class NominatimClient:
             address={str(key): str(value) for key, value in address.items()},
             bounding_box=bounding_box,
         )
+
+
+def _email_from_user_agent(user_agent: str) -> str | None:
+    match = re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", user_agent)
+    return match.group(0) if match else None
 
 
 def _as_optional_int(value: Any) -> int | None:

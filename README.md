@@ -77,6 +77,7 @@ calling the public Nominatim service.
 | `DATABASE_URL` | PostgreSQL URL (`postgresql+asyncpg://...`) | `postgresql+asyncpg://user:password@localhost:5432/ibrda` |
 | `OPEN_METEO_BASE_URL` | Open-Meteo forecast API base URL | `https://api.open-meteo.com/v1` |
 | `OPEN_METEO_ARCHIVE_BASE_URL` | Open-Meteo historical API base URL | `https://archive-api.open-meteo.com/v1` |
+| `OPEN_METEO_GEOCODING_BASE_URL` | Open-Meteo geocoding fallback | `https://geocoding-api.open-meteo.com/v1` |
 | `NOMINATIM_BASE_URL` | Nominatim API base URL | `https://nominatim.openstreetmap.org` |
 | `NOMINATIM_USER_AGENT` | Required descriptive User-Agent | `IndiaBusinessResearchDecisionAgent/0.1 (you@example.com)` |
 | `HTTP_TIMEOUT_SECONDS` | Upstream HTTP timeout | `30` |

@@ -32,6 +32,7 @@ from app.rag.retriever import DocumentRetriever
 from app.rag.store import PgVectorStore
 from app.services.external import (
     DataGovInProvider,
+    FallbackGeocoder,
     NominatimClient,
     OpenMeteoClient,
     OverpassBusinessSearchProvider,
@@ -67,6 +68,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         http_client,
         forecast_base_url=settings.open_meteo_base_url,
         archive_base_url=settings.open_meteo_archive_base_url,
+        geocoding_base_url=settings.open_meteo_geocoding_base_url,
         cache=cache,
         cache_ttl_seconds=settings.cache_ttl_seconds,
     )
@@ -78,6 +80,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         cache_ttl_seconds=settings.nominatim_cache_ttl_seconds,
         min_request_interval_seconds=settings.nominatim_min_request_interval_seconds,
     )
+    geocoder = FallbackGeocoder(nominatim, open_meteo)
     business_search = OverpassBusinessSearchProvider(
         http_client,
         base_url=settings.overpass_base_url,
@@ -94,11 +97,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.http_client = http_client
     app.state.cache = cache
     app.state.open_meteo = open_meteo
-    app.state.nominatim = nominatim
+    app.state.nominatim = geocoder
     app.state.business_search = business_search
     app.state.government_data = government_data
     app.state.weather_agent = WeatherAgent(open_meteo)
-    app.state.geography_agent = GeographyAgent(nominatim)
+    app.state.geography_agent = GeographyAgent(geocoder)
     app.state.competition_agent = CompetitionAgent(business_search)
     app.state.government_data_agent = GovernmentDataAgent(government_data)
 
@@ -140,7 +143,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         government_data_agent=app.state.government_data_agent,
         documents_agent=app.state.documents_agent,
         evidence_service=app.state.evidence_service,
-        nominatim=nominatim,
+        nominatim=geocoder,
         progress_sink=InvestigationProgressSink(store),
     )
     investigation_graph = build_investigation_graph(deps=orchestration_deps)

@@ -78,9 +78,17 @@ class GeographyAgent(ResearchAgent):
 
         sources.append(
             AgentSource(
-                name="OpenStreetMap Nominatim",
-                url="https://nominatim.openstreetmap.org/",
-                tool="nominatim",
+                name=(
+                    "Open-Meteo Geocoding"
+                    if place.source == "open-meteo"
+                    else "OpenStreetMap Nominatim"
+                ),
+                url=(
+                    "https://open-meteo.com/en/docs/geocoding-api"
+                    if place.source == "open-meteo"
+                    else "https://nominatim.openstreetmap.org/"
+                ),
+                tool="nominatim" if place.source == "nominatim" else place.source,
             )
         )
 

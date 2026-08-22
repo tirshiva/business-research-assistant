@@ -77,6 +77,7 @@ async def test_successful_geocoding() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path.endswith("/search")
         assert request.headers.get("User-Agent") == "TestAgent/0.1 (tests@example.com)"
+        assert request.headers.get("From") == "tests@example.com"
         return httpx.Response(200, json=_geocode_payload())
 
     client, http = _build_client(httpx.MockTransport(handler))

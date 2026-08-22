@@ -28,6 +28,9 @@ services:
       LOG_LEVEL: INFO
       DATABASE_URL: postgresql+asyncpg://user:password@db:5432/ibrda
       CORS_ORIGINS: http://localhost:5173,http://localhost:8080
+      # Compose interpolates this from the project `.env` (env_file alone used
+      # `.env.example`, whose example.com address Nominatim rejects with 403).
+      NOMINATIM_USER_AGENT: ${NOMINATIM_USER_AGENT:-IndiaBusinessResearchDecisionAgent/0.1 (contact@example.com)}
     volumes:
       - ./app:/app/app:ro
     depends_on:

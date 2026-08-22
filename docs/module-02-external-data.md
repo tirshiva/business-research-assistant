@@ -21,7 +21,8 @@ Returns `WeatherData` (application model), never raw provider payloads.
 - `reverse_geocode(latitude, longitude)` — coordinates → address
 
 Uses a descriptive `User-Agent` and paces requests (~1 req/s) to respect
-Nominatim usage policy.
+Nominatim usage policy. If Nominatim returns 403/5xx (common on the public
+instance), `FallbackGeocoder` retries via Open-Meteo geocoding.
 
 ## Shared infrastructure
 

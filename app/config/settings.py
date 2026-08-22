@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     # External APIs
     open_meteo_base_url: str = "https://api.open-meteo.com/v1"
     open_meteo_archive_base_url: str = "https://archive-api.open-meteo.com/v1"
+    open_meteo_geocoding_base_url: str = "https://geocoding-api.open-meteo.com/v1"
     nominatim_base_url: str = "https://nominatim.openstreetmap.org"
     nominatim_user_agent: str = (
         "IndiaBusinessResearchDecisionAgent/0.1 (contact@example.com)"

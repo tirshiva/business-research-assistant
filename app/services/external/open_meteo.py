@@ -9,6 +9,7 @@ from app.core.cache import CacheBackend, InMemoryCache
 from app.core.exceptions import DataUnavailableError, MalformedResponseError
 from app.core.http import AsyncHttpClient
 from app.core.logging import get_logger
+from app.models.location import LocationData
 from app.models.weather import (
     CurrentWeather,
     DailyWeather,
@@ -47,12 +48,14 @@ class OpenMeteoClient:
         *,
         forecast_base_url: str = "https://api.open-meteo.com/v1",
         archive_base_url: str = "https://archive-api.open-meteo.com/v1",
+        geocoding_base_url: str = "https://geocoding-api.open-meteo.com/v1",
         cache: CacheBackend | None = None,
         cache_ttl_seconds: int = 600,
     ) -> None:
         self._http = http_client
         self._forecast_base_url = forecast_base_url.rstrip("/")
         self._archive_base_url = archive_base_url.rstrip("/")
+        self._geocoding_base_url = geocoding_base_url.rstrip("/")
         self._cache: CacheBackend = cache or InMemoryCache(
             default_ttl_seconds=cache_ttl_seconds
         )
@@ -175,6 +178,91 @@ class OpenMeteoClient:
             ttl_seconds=self._cache_ttl_seconds,
         )
         return weather
+
+    async def geocode(self, address: str, *, count: int = 1) -> LocationData:
+        """Resolve a place name to coordinates via Open-Meteo's geocoding API."""
+        query = address.strip()
+        if not query:
+            raise DataUnavailableError(
+                "Address query must not be empty",
+                provider="open-meteo-geocoding",
+            )
+
+        cache_key = f"openmeteo:geocode:{query.lower()}:{count}"
+        cached = await self._cache.get(cache_key)
+        if cached is not None:
+            return LocationData.model_validate(cached)
+
+        payload = await self._http.get(
+            f"{self._geocoding_base_url}/search",
+            params={
+                "name": query,
+                "count": count,
+                "language": "en",
+                "format": "json",
+            },
+            provider="open-meteo-geocoding",
+        )
+        location = self._parse_geocode_payload(payload, query)
+        await self._cache.set(
+            cache_key,
+            location.model_dump(mode="json"),
+            ttl_seconds=self._cache_ttl_seconds,
+        )
+        return location
+
+    def _parse_geocode_payload(self, payload: Any, query: str) -> LocationData:
+        if not isinstance(payload, dict):
+            raise MalformedResponseError(
+                "Open-Meteo geocoding response was not a JSON object",
+                provider="open-meteo-geocoding",
+            )
+        results = payload.get("results")
+        if not isinstance(results, list) or not results:
+            raise DataUnavailableError(
+                f"No geocoding results for '{query}'",
+                provider="open-meteo-geocoding",
+            )
+        hit = results[0]
+        if not isinstance(hit, dict):
+            raise MalformedResponseError(
+                "Open-Meteo geocoding hit was malformed",
+                provider="open-meteo-geocoding",
+            )
+        try:
+            latitude = float(hit["latitude"])
+            longitude = float(hit["longitude"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise MalformedResponseError(
+                "Open-Meteo geocoding response missing lat/lon",
+                provider="open-meteo-geocoding",
+                details=str(hit),
+            ) from exc
+
+        parts = [
+            str(hit.get("name") or "").strip(),
+            str(hit.get("admin1") or "").strip(),
+            str(hit.get("country") or "").strip(),
+        ]
+        display_name = ", ".join(part for part in parts if part) or query
+        address = {
+            key: str(value)
+            for key, value in {
+                "city": hit.get("admin2") or hit.get("name"),
+                "state": hit.get("admin1"),
+                "country": hit.get("country"),
+                "country_code": hit.get("country_code"),
+            }.items()
+            if value
+        }
+        return LocationData(
+            latitude=latitude,
+            longitude=longitude,
+            display_name=display_name,
+            place_id=_as_optional_int(hit.get("id")),
+            address=address,
+            source="open-meteo",
+        )
 
     async def _forecast(
         self,
