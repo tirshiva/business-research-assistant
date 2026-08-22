@@ -11,6 +11,7 @@ from app.evidence import EvidenceService, EvidenceValidator, InMemoryEvidenceRep
 
 if TYPE_CHECKING:
     from app.agents.competition import CompetitionAgent
+    from app.agents.documents import DocumentsAgent
     from app.agents.geography import GeographyAgent
     from app.agents.government import GovernmentDataAgent
     from app.agents.weather import WeatherAgent
@@ -25,6 +26,7 @@ class ResearchOrchestrationDeps:
     geography_agent: GeographyAgent
     competition_agent: CompetitionAgent
     government_data_agent: GovernmentDataAgent
+    documents_agent: DocumentsAgent
     evidence_service: EvidenceService
     nominatim: NominatimClient | None = None
 
@@ -34,6 +36,7 @@ class ResearchOrchestrationDeps:
             "geography": self.geography_agent,
             "competition": self.competition_agent,
             "government_data": self.government_data_agent,
+            "documents": self.documents_agent,
         }
         try:
             return mapping[name]
@@ -177,6 +180,51 @@ class ResearchOrchestrationDeps:
                 allowed_tools=["government_data.search"],
             )
 
+        async def _documents_run(payload: Any) -> AgentResult:
+            if "documents" in failures:
+                return AgentResult(
+                    agent="documents",
+                    findings=[],
+                    sources=[],
+                    confidence=0.0,
+                    status="failed",
+                    errors=["mocked documents failure"],
+                    allowed_tools=["rag.retrieve"],
+                )
+            return AgentResult(
+                agent="documents",
+                findings=[
+                    AgentFinding(
+                        title=("NCR Food Services and Office Catchment Brief (sample)"),
+                        summary=(
+                            "Sector 62 office catchment supports prepared-food "
+                            "delivery."
+                        ),
+                        data={
+                            "claim": (
+                                "Sector 62 office catchment supports "
+                                "prepared-food delivery."
+                            ),
+                            "source": "India Business Research sample public corpus",
+                            "document_id": "sample-noida-economic-brief-2024",
+                            "page": 17,
+                            "chunk_id": "sample-noida-economic-brief-2024:p17:c1",
+                            "source_url": "https://data.gov.in/",
+                        },
+                        confidence=0.85,
+                    )
+                ],
+                sources=[
+                    AgentSource(
+                        name="India Business Research sample public corpus",
+                        url="https://data.gov.in/",
+                    )
+                ],
+                confidence=0.85,
+                status="completed",
+                allowed_tools=["rag.retrieve"],
+            )
+
         weather = AsyncMock()
         weather.name = "weather"
         weather.allowed_tools = ["open_meteo.get_forecast"]
@@ -197,6 +245,11 @@ class ResearchOrchestrationDeps:
         government.allowed_tools = ["government_data.search"]
         government.run = AsyncMock(side_effect=_government_run)
 
+        documents = AsyncMock()
+        documents.name = "documents"
+        documents.allowed_tools = ["rag.retrieve"]
+        documents.run = AsyncMock(side_effect=_documents_run)
+
         from app.models.location import LocationData
 
         nominatim = AsyncMock()
@@ -213,6 +266,7 @@ class ResearchOrchestrationDeps:
             geography_agent=geography,
             competition_agent=competition,
             government_data_agent=government,
+            documents_agent=documents,
             evidence_service=evidence_service,
             nominatim=nominatim,
         )

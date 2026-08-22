@@ -12,6 +12,7 @@ business recommendations.
 | Geography | Nominatim | Geocode, reverse geocode, surrounding context |
 | Competition | Pluggable business search (Overpass/OSM default) | Public POIs only — no scraping |
 | Government Data | data.gov.in CKAN catalog | Metadata search; structured unavailable if API fails |
+| Documents | `rag.retrieve` (pgvector) | Public corpus passages with document_id and page |
 
 ## Common output
 
@@ -48,3 +49,4 @@ On the running FastAPI app:
 - `app.state.geography_agent`
 - `app.state.competition_agent`
 - `app.state.government_data_agent`
+- `app.state.documents_agent`

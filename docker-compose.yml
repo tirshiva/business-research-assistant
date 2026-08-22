@@ -1,6 +1,7 @@
 services:
   db:
-    image: postgres:16-alpine
+    # pgvector-enabled Postgres 16 for document RAG
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password

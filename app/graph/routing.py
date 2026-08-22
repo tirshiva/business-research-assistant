@@ -9,6 +9,7 @@ EXECUTABLE_AGENT_TASKS: frozenset[str] = frozenset(
         "geography",
         "competition",
         "government_data",
+        "documents",
     }
 )
 
@@ -17,7 +18,6 @@ UNSUPPORTED_RESEARCH_TASKS: frozenset[str] = frozenset(
     {
         "demographics",
         "infrastructure",
-        "documents",
     }
 )
 

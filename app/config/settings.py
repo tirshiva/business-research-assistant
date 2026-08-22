@@ -68,6 +68,13 @@ class Settings(BaseSettings):
     # Critic / self-correction
     max_research_iterations: int = 3
 
+    # Document RAG
+    rag_embedding_dim: int = 64
+    rag_chunk_size: int = 420
+    rag_chunk_overlap: int = 80
+    rag_top_k: int = 5
+    rag_seed_on_startup: bool = True
+
 
 @lru_cache
 def get_settings() -> Settings:

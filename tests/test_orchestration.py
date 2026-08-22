@@ -50,8 +50,9 @@ def test_select_executable_agents_filters_plan() -> None:
         "weather",
         "competition",
         "geography",
+        "documents",
     ]
-    assert select_unavailable_dimensions(plan) == ["demographics", "documents"]
+    assert select_unavailable_dimensions(plan) == ["demographics"]
 
 
 @pytest.mark.asyncio
@@ -126,6 +127,35 @@ async def test_unsupported_tasks_marked_unavailable() -> None:
     assert "competition" in agents_run
     assert "demographics" in final_state["unavailable_dimensions"]
     assert "infrastructure" in final_state["unavailable_dimensions"]
+
+
+@pytest.mark.asyncio
+async def test_documents_research_stores_provenance_evidence() -> None:
+    deps = ResearchOrchestrationDeps.mock()
+    graph = build_investigation_graph(
+        llm=PlanLLM(["documents", "weather", "geography", "competition"]),
+        deps=deps,
+    )
+    final_state = await graph.ainvoke(
+        create_initial_state(SAMPLE_QUERY),
+        {"recursion_limit": 50},
+    )
+
+    assert "documents" in final_state["routed_agents"]
+    assert "documents" in {run["agent"] for run in final_state["agent_runs"]}
+    doc_evidence = [
+        item for item in final_state["evidence"] if item.get("agent") == "documents"
+    ]
+    assert doc_evidence
+    item = doc_evidence[0]
+    metadata = item.get("metadata") or {}
+    value_data = (item.get("value") or {}).get("data") or {}
+    assert metadata.get("document_id") == "sample-noida-economic-brief-2024"
+    assert metadata.get("page") == 17
+    assert value_data.get("document_id") == "sample-noida-economic-brief-2024"
+    assert value_data.get("page") == 17
+    assert value_data.get("source")
+    assert item.get("claim")
 
 
 @pytest.mark.asyncio

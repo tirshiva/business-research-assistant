@@ -38,6 +38,28 @@ async def test_local_provider_selects_relevant_tasks_for_cloud_kitchen() -> None
         "weather",
     ):
         assert task in plan.research_tasks
+    assert "documents" in plan.research_tasks
+
+
+@pytest.mark.asyncio
+async def test_local_provider_selects_documents_for_government_report() -> None:
+    llm = LocalLLMProvider()
+    plan = await llm.generate_structured(
+        system_prompt="plan",
+        user_prompt=(
+            "User question: What does the government report say about FSSAI "
+            "hygiene guidelines for cloud kitchens in Noida?\n"
+            "CONTEXT_JSON:\n"
+            '{"user_query":"What does the government report say about FSSAI '
+            'hygiene guidelines for cloud kitchens in Noida?",'
+            '"business_type":"cloud_kitchen","location":"Noida",'
+            '"objective":null,"target_customer":null}'
+        ),
+        response_model=ResearchPlan,
+    )
+
+    assert "documents" in plan.research_tasks
+    assert "government_data" in plan.research_tasks
 
 
 @pytest.mark.asyncio

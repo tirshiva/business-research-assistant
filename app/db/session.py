@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from typing import Any
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -34,7 +35,11 @@ def create_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSessi
 
 async def create_schema(engine: AsyncEngine) -> None:
     """Create tables if they do not already exist."""
+    import app.rag.tables  # noqa: F401 — register RAG metadata on Base
+
     async with engine.begin() as connection:
+        if engine.dialect.name == "postgresql":
+            await connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await connection.run_sync(Base.metadata.create_all)
 
 

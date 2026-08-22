@@ -27,6 +27,7 @@ _SOURCE_TYPE_BY_AGENT: dict[str, SourceType] = {
     "geography": "map",
     "competition": "map",
     "government_data": "catalog",
+    "documents": "document",
 }
 
 _RELIABILITY_BY_AGENT: dict[str, ReliabilityClass] = {
@@ -34,6 +35,7 @@ _RELIABILITY_BY_AGENT: dict[str, ReliabilityClass] = {
     "geography": "high",
     "competition": "medium",
     "government_data": "high",
+    "documents": "high",
 }
 
 
@@ -185,12 +187,24 @@ def evidence_from_agent_result(
     )
     items: list[Evidence] = []
     for finding in result.findings:
-        claim = finding.title.strip() or finding.summary.strip()
+        data = finding.data or {}
+        claim = (
+            str(data.get("claim") or "").strip()
+            or finding.title.strip()
+            or finding.summary.strip()
+        )
         if not claim:
             continue
         confidence = (
             finding.confidence if finding.confidence is not None else result.confidence
         )
+        metadata: dict[str, Any] = {
+            "agent_status": result.status,
+            "finding_title": finding.title,
+        }
+        for key in ("document_id", "page", "chunk_id", "source"):
+            if data.get(key) is not None:
+                metadata[key] = data[key]
         items.append(
             Evidence(
                 investigation_id=investigation_id,
@@ -205,10 +219,7 @@ def evidence_from_agent_result(
                 source_url=source_record.url,
                 retrieved_at=source_record.retrieved_at,
                 confidence=confidence,
-                metadata={
-                    "agent_status": result.status,
-                    "finding_title": finding.title,
-                },
+                metadata=metadata,
             )
         )
     return items

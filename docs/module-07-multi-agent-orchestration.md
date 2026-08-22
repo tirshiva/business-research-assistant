@@ -22,8 +22,9 @@ START
 - geography
 - competition
 - government_data
+- documents
 
-Unsupported planned tasks (`demographics`, `infrastructure`, `documents`) are recorded in `unavailable_dimensions`.
+Unsupported planned tasks (`demographics`, `infrastructure`) are recorded in `unavailable_dimensions`.
 
 ## Parallel execution
 

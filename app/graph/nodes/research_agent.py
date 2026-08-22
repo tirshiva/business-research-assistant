@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.agents.competition import CompetitionAgentInput
+from app.agents.documents import DocumentsAgentInput
 from app.agents.geography import GeographyAgentInput
 from app.agents.government import GovernmentDataAgentInput
 from app.agents.schemas import AgentResult
@@ -137,6 +138,12 @@ def _build_agent_input(agent_name: str, state: AgentWorkItem) -> Any:
         )
     if agent_name == "government_data":
         return GovernmentDataAgentInput(
+            query=state.get("user_query") or location,
+            location=state.get("location"),
+            business_type=state.get("business_type"),
+        )
+    if agent_name == "documents":
+        return DocumentsAgentInput(
             query=state.get("user_query") or location,
             location=state.get("location"),
             business_type=state.get("business_type"),

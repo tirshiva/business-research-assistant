@@ -2,6 +2,7 @@
 
 from app.agents.analysis import AnalysisAgent
 from app.agents.competition import CompetitionAgent, CompetitionAgentInput
+from app.agents.documents import DocumentsAgent, DocumentsAgentInput
 from app.agents.geography import GeographyAgent, GeographyAgentInput
 from app.agents.government import GovernmentDataAgent, GovernmentDataAgentInput
 from app.agents.schemas import AgentFinding, AgentResult, AgentSource
@@ -14,6 +15,8 @@ __all__ = [
     "AnalysisAgent",
     "CompetitionAgent",
     "CompetitionAgentInput",
+    "DocumentsAgent",
+    "DocumentsAgentInput",
     "GeographyAgent",
     "GeographyAgentInput",
     "GovernmentDataAgent",

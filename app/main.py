@@ -7,6 +7,7 @@ from fastapi import FastAPI
 
 from app.agents import (
     CompetitionAgent,
+    DocumentsAgent,
     GeographyAgent,
     GovernmentDataAgent,
     WeatherAgent,
@@ -22,6 +23,11 @@ from app.db.store import InvestigationStore, SqlAlchemyEvidenceRepository
 from app.evidence import EvidenceService, EvidenceValidator
 from app.graph.deps import ResearchOrchestrationDeps
 from app.graph.graph import build_investigation_graph
+from app.rag.corpus import public_sample_corpus
+from app.rag.embeddings import HashingEmbeddingProvider
+from app.rag.ingest import DocumentIngestor
+from app.rag.retriever import DocumentRetriever
+from app.rag.store import PgVectorStore
 from app.services.external import (
     DataGovInProvider,
     NominatimClient,
@@ -92,6 +98,25 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.competition_agent = CompetitionAgent(business_search)
     app.state.government_data_agent = GovernmentDataAgent(government_data)
 
+    embeddings = HashingEmbeddingProvider(dim=settings.rag_embedding_dim)
+    rag_store = PgVectorStore(session_factory)
+    retriever = DocumentRetriever(
+        rag_store,
+        embeddings,
+        top_k=settings.rag_top_k,
+    )
+    if settings.rag_seed_on_startup:
+        ingestor = DocumentIngestor(
+            rag_store,
+            embeddings,
+            chunk_size=settings.rag_chunk_size,
+            overlap=settings.rag_chunk_overlap,
+        )
+        if await rag_store.document_count() == 0:
+            await ingestor.ingest_many(public_sample_corpus())
+    app.state.rag_store = rag_store
+    app.state.documents_agent = DocumentsAgent(retriever)
+
     evidence_validator = EvidenceValidator(
         min_confidence=settings.evidence_min_confidence,
         stale_after_hours=settings.evidence_stale_after_hours,
@@ -109,6 +134,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         geography_agent=app.state.geography_agent,
         competition_agent=app.state.competition_agent,
         government_data_agent=app.state.government_data_agent,
+        documents_agent=app.state.documents_agent,
         evidence_service=app.state.evidence_service,
         nominatim=nominatim,
     )

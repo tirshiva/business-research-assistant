@@ -17,6 +17,7 @@ Current modules:
 - **Module 08** — Business analysis and opportunity scoring
 - **Module 09** — Critic and self-correction workflow
 - **Module 10** — Persistence and FastAPI investigation API
+- **Module 11** — Government document RAG (pgvector + documents agent)
 
 ## Features
 
@@ -36,6 +37,7 @@ Current modules:
 - Analysis agent with cited insights and deterministic weighted opportunity scoring
 - FastAPI investigation API (`POST/GET /investigations`) with PostgreSQL persistence
 - Critic quality-control loop with cyclic re-research and a max-iteration halt
+- Document RAG (parse → chunk → embed → pgvector / SQLite cosine) with cited passages
 - pytest coverage with mocked HTTP/LLM; optional live integration tests
 - Docker + docker-compose for local development
 - Ruff for linting and formatting
@@ -86,6 +88,11 @@ calling the public Nominatim service.
 | `SCORE_WEIGHT_RISK` | Opportunity score weight: risk favorability | `0.10` |
 | `SCORE_CRITICAL_DIMENSIONS` | Dimensions required to avoid `INSUFFICIENT DATA` | `demand,competition,accessibility` |
 | `MAX_RESEARCH_ITERATIONS` | Critic self-correction cap before halt | `3` |
+| `RAG_EMBEDDING_DIM` | Hashing embedding size (must match pgvector column) | `64` |
+| `RAG_CHUNK_SIZE` | Character chunk size | `420` |
+| `RAG_CHUNK_OVERLAP` | Overlap between chunks | `80` |
+| `RAG_TOP_K` | Retriever hit count | `5` |
+| `RAG_SEED_ON_STARTUP` | Ingest sample public corpus if empty | `true` |
 | `RUN_INTEGRATION_TESTS` | Enable live API tests when `true` | `false` |
 
 See `.env.example` for a complete template. Never commit real secrets.
@@ -114,6 +121,8 @@ curl -X POST http://localhost:8000/investigations \
 ```bash
 docker compose up --build
 ```
+
+The Compose `db` service uses `pgvector/pgvector:pg16` so `CREATE EXTENSION vector` succeeds.
 
 ## Using the investigation graph
 
@@ -207,7 +216,8 @@ app/
     deps.py                # Injected agent/evidence dependencies
   db/                      # SQLAlchemy models, sessions, investigation store
   critic/                  # Quality-control checks and PASS/FAIL verdict
-  agents/                  # weather, geography, competition, government, analysis
+  agents/                  # weather, geography, competition, government, documents, analysis
+  rag/                     # Document parse/chunk/embed/pgvector retrieve
   scoring/                 # Deterministic dimension weights and overall score
   evidence/                # Evidence models, repository, validator, service
   llm/                     # LLMProvider abstraction (local, bedrock)
@@ -224,7 +234,6 @@ docs/                      # Module documentation
 
 ## Out of scope (later modules)
 
-- RAG / document retrieval agents
 - Frontend
 
 ## License

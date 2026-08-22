@@ -272,6 +272,7 @@ def _select_research_tasks(
     demographic_tokens = ("demographic", "population", "office worker")
     if any(token in lowered for token in demographic_tokens):
         add("demographics")
+        add("documents")
 
     access_tokens = ("road", "metro", "access", "parking", "infra")
     if any(token in lowered for token in access_tokens):
@@ -305,7 +306,15 @@ def _select_research_tasks(
         add("government_data")
         add("documents")
 
-    document_tokens = ("document", "report", "guideline", "regulation")
+    document_tokens = (
+        "document",
+        "report",
+        "guideline",
+        "regulation",
+        "white paper",
+        "census",
+        "policy brief",
+    )
     if any(token in lowered for token in document_tokens):
         add("documents")
 

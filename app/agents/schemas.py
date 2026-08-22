@@ -7,7 +7,13 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-AgentName = Literal["weather", "geography", "competition", "government_data"]
+AgentName = Literal[
+    "weather",
+    "geography",
+    "competition",
+    "government_data",
+    "documents",
+]
 AgentStatus = Literal["completed", "partial", "failed", "data_unavailable"]
 
 
