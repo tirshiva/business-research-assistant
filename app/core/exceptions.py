@@ -90,6 +90,24 @@ class PlannerError(Exception):
         self.attempts = attempts
 
 
+class InvestigationNotFoundError(Exception):
+    """Raised when an investigation ID does not exist."""
+
+    def __init__(self, investigation_id: str) -> None:
+        super().__init__(f"Investigation '{investigation_id}' was not found")
+        self.investigation_id = investigation_id
+        self.message = f"Investigation '{investigation_id}' was not found"
+
+
+class InvestigationConflictError(Exception):
+    """Raised when an investigation cannot accept the requested operation."""
+
+    def __init__(self, message: str, *, investigation_id: str | None = None) -> None:
+        super().__init__(message)
+        self.message = message
+        self.investigation_id = investigation_id
+
+
 class EvidenceValidationError(ValueError):
     """Raised when evidence fails structural validation before storage."""
 

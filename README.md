@@ -16,6 +16,7 @@ Current modules:
 - **Module 07** — Multi-agent LangGraph orchestration
 - **Module 08** — Business analysis and opportunity scoring
 - **Module 09** — Critic and self-correction workflow
+- **Module 10** — Persistence and FastAPI investigation API
 
 ## Features
 
@@ -33,6 +34,7 @@ Current modules:
 - Evidence repository with validation, contradictions, and claim provenance
 - Multi-agent LangGraph orchestration with dynamic routing and parallel research
 - Analysis agent with cited insights and deterministic weighted opportunity scoring
+- FastAPI investigation API (`POST/GET /investigations`) with PostgreSQL persistence
 - Critic quality-control loop with cyclic re-research and a max-iteration halt
 - pytest coverage with mocked HTTP/LLM; optional live integration tests
 - Docker + docker-compose for local development
@@ -68,7 +70,7 @@ calling the public Nominatim service.
 | `APP_NAME` | Application display name | `India Business Research & Decision Agent` |
 | `APP_ENV` | Runtime environment | `development` |
 | `LOG_LEVEL` | Logging level | `INFO` |
-| `DATABASE_URL` | Database URL (reserved for later modules) | `postgresql+asyncpg://user:password@localhost:5432/ibrda` |
+| `DATABASE_URL` | PostgreSQL URL (`postgresql+asyncpg://...`) | `postgresql+asyncpg://user:password@localhost:5432/ibrda` |
 | `OPEN_METEO_BASE_URL` | Open-Meteo forecast API base URL | `https://api.open-meteo.com/v1` |
 | `OPEN_METEO_ARCHIVE_BASE_URL` | Open-Meteo historical API base URL | `https://archive-api.open-meteo.com/v1` |
 | `NOMINATIM_BASE_URL` | Nominatim API base URL | `https://nominatim.openstreetmap.org` |
@@ -98,6 +100,14 @@ Then open:
 
 - Health: http://localhost:8000/health
 - Interactive docs: http://localhost:8000/docs
+
+Create an investigation:
+
+```bash
+curl -X POST http://localhost:8000/investigations \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"Is Sector 62, Noida a good location for a cloud kitchen?"}'
+```
 
 ### Run with Docker Compose
 
@@ -182,7 +192,7 @@ uv run ruff check --fix .
 
 ```text
 app/
-  api/routes/              # HTTP route modules
+  api/routes/              # health + investigations
   config/                  # Pydantic Settings
   core/
     cache/                 # CacheBackend + InMemoryCache
@@ -195,8 +205,9 @@ app/
     graph.py               # Multi-agent orchestration graph
     routing.py             # Plan task → agent mapping
     deps.py                # Injected agent/evidence dependencies
-  agents/                  # weather, geography, competition, government, analysis
+  db/                      # SQLAlchemy models, sessions, investigation store
   critic/                  # Quality-control checks and PASS/FAIL verdict
+  agents/                  # weather, geography, competition, government, analysis
   scoring/                 # Deterministic dimension weights and overall score
   evidence/                # Evidence models, repository, validator, service
   llm/                     # LLMProvider abstraction (local, bedrock)
@@ -204,6 +215,7 @@ app/
   services/
     external/              # Open-Meteo, Nominatim, Overpass, data.gov.in
     investigation.py       # Graph execution service
+    investigation_app.py   # Persist + public API orchestration
     planner.py             # ResearchPlanner
   main.py                  # FastAPI entrypoint
 tests/                     # Unit + optional integration tests

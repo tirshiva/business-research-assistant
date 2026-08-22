@@ -17,7 +17,7 @@ def settings_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
     monkeypatch.setenv(
         "DATABASE_URL",
-        "postgresql+asyncpg://test:test@localhost:5432/testdb",
+        "sqlite+aiosqlite:///:memory:",
     )
     monkeypatch.setenv("OPEN_METEO_BASE_URL", "https://example.test/v1")
     monkeypatch.setenv(

@@ -20,3 +20,4 @@ def test_application_starts_successfully(client: TestClient) -> None:
     payload = response.json()
     assert payload["info"]["title"] == "Test App"
     assert "/health" in payload["paths"]
+    assert "/investigations" in payload["paths"]

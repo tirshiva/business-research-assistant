@@ -24,10 +24,15 @@ class InvestigationService:
     async def run(
         self,
         payload: InvestigationRequest | dict[str, str],
+        *,
+        investigation_id: str | None = None,
     ) -> InvestigationResult:
         """Execute the multi-agent investigation graph and return validated state."""
         request = self._validate_request(payload)
-        initial_state = create_initial_state(request.user_query)
+        initial_state = create_initial_state(
+            request.user_query,
+            investigation_id=investigation_id,
+        )
         settings = get_settings()
         recursion_limit = max(50, int(settings.max_research_iterations) * 25)
 

@@ -11,9 +11,7 @@ def test_settings_load_from_environment(settings_env: None) -> None:
     assert settings.app_name == "Test App"
     assert settings.app_env == "test"
     assert settings.log_level == "DEBUG"
-    assert settings.database_url == (
-        "postgresql+asyncpg://test:test@localhost:5432/testdb"
-    )
+    assert settings.database_url == "sqlite+aiosqlite:///:memory:"
     assert settings.open_meteo_base_url == "https://example.test/v1"
     assert settings.nominatim_base_url == "https://nominatim.example.test"
     assert settings.nominatim_user_agent == "TestAgent/0.1 (tests@example.com)"

@@ -11,12 +11,15 @@ from app.agents import (
     GovernmentDataAgent,
     WeatherAgent,
 )
+from app.api.errors import register_exception_handlers
 from app.api.routes import api_router
 from app.config import get_settings
 from app.core.cache import InMemoryCache
 from app.core.http import AsyncHttpClient
 from app.core.logging import get_logger, setup_logging
-from app.evidence import EvidenceService, EvidenceValidator, InMemoryEvidenceRepository
+from app.db.session import create_engine, create_schema, create_session_factory
+from app.db.store import InvestigationStore, SqlAlchemyEvidenceRepository
+from app.evidence import EvidenceService, EvidenceValidator
 from app.graph.deps import ResearchOrchestrationDeps
 from app.graph.graph import build_investigation_graph
 from app.services.external import (
@@ -26,6 +29,7 @@ from app.services.external import (
     OverpassBusinessSearchProvider,
 )
 from app.services.investigation import InvestigationService
+from app.services.investigation_app import InvestigationAppService
 
 logger = get_logger(__name__)
 
@@ -40,6 +44,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.app_name,
         settings.app_env,
     )
+
+    engine = create_engine(settings.database_url)
+    await create_schema(engine)
+    session_factory = create_session_factory(engine)
+    store = InvestigationStore(session_factory)
+    evidence_repository = SqlAlchemyEvidenceRepository(session_factory)
 
     http_client = AsyncHttpClient(timeout=settings.http_timeout_seconds)
     cache = InMemoryCache(default_ttl_seconds=settings.cache_ttl_seconds)
@@ -68,6 +78,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         api_key=settings.data_gov_in_api_key or None,
     )
 
+    app.state.db_engine = engine
+    app.state.db_session_factory = session_factory
+    app.state.investigation_store = store
     app.state.http_client = http_client
     app.state.cache = cache
     app.state.open_meteo = open_meteo
@@ -79,7 +92,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.competition_agent = CompetitionAgent(business_search)
     app.state.government_data_agent = GovernmentDataAgent(government_data)
 
-    evidence_repository = InMemoryEvidenceRepository()
     evidence_validator = EvidenceValidator(
         min_confidence=settings.evidence_min_confidence,
         stale_after_hours=settings.evidence_stale_after_hours,
@@ -101,14 +113,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         nominatim=nominatim,
     )
     investigation_graph = build_investigation_graph(deps=orchestration_deps)
+    investigation_service = InvestigationService(graph=investigation_graph)
     app.state.orchestration_deps = orchestration_deps
     app.state.investigation_graph = investigation_graph
-    app.state.investigation_service = InvestigationService(graph=investigation_graph)
+    app.state.investigation_service = investigation_service
+    app.state.investigation_app_service = InvestigationAppService(
+        store=store,
+        runner=investigation_service,
+    )
 
     try:
         yield
     finally:
         await http_client.aclose()
+        await engine.dispose()
         logger.info("Shutting down %s", settings.app_name)
 
 
@@ -121,6 +139,7 @@ def create_app() -> FastAPI:
         title=settings.app_name,
         lifespan=lifespan,
     )
+    register_exception_handlers(application)
     application.include_router(api_router)
     return application
 

@@ -74,10 +74,14 @@ class AgentWorkItem(TypedDict):
     agent_name: str
 
 
-def create_initial_state(user_query: str) -> InvestigationState:
+def create_initial_state(
+    user_query: str,
+    *,
+    investigation_id: str | None = None,
+) -> InvestigationState:
     """Build a valid initial :class:`InvestigationState` for graph execution."""
     return InvestigationState(
-        investigation_id=str(uuid.uuid4()),
+        investigation_id=investigation_id or str(uuid.uuid4()),
         user_query=user_query.strip(),
         business_type=None,
         location=None,
