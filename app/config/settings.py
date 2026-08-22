@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     nominatim_user_agent: str = (
         "IndiaBusinessResearchDecisionAgent/0.1 (contact@example.com)"
     )
+    overpass_base_url: str = "https://overpass-api.de/api/interpreter"
+    data_gov_in_base_url: str = "https://data.gov.in/api/3/action"
+    data_gov_in_api_key: str = ""
 
     # HTTP / cache
     http_timeout_seconds: float = 30.0

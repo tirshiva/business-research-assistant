@@ -28,6 +28,7 @@ class HourlyWeather(BaseModel):
     temperature_c: float | None = None
     relative_humidity_pct: float | None = None
     precipitation_mm: float | None = None
+    precipitation_probability_pct: float | None = None
     weather_code: int | None = None
     wind_speed_kmh: float | None = None
     cloud_cover_pct: float | None = None

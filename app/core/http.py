@@ -75,6 +75,44 @@ class AsyncHttpClient:
 
         return self._parse_response(response, provider=provider)
 
+    async def post(
+        self,
+        url: str,
+        *,
+        data: dict[str, Any] | None = None,
+        json: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        provider: str | None = None,
+    ) -> Any:
+        """Perform a POST request and return parsed JSON."""
+        try:
+            response = await self._client.post(
+                url,
+                data=data,
+                json=json,
+                headers=headers,
+            )
+        except httpx.TimeoutException as exc:
+            logger.warning("HTTP timeout talking to %s: %s", provider or url, exc)
+            raise ExternalTimeoutError(
+                f"Request timed out for {provider or url}",
+                provider=provider,
+                details=str(exc),
+            ) from exc
+        except httpx.HTTPError as exc:
+            logger.warning(
+                "HTTP transport error talking to %s: %s",
+                provider or url,
+                exc,
+            )
+            raise HttpRequestError(
+                f"HTTP request failed for {provider or url}",
+                provider=provider,
+                details=str(exc),
+            ) from exc
+
+        return self._parse_response(response, provider=provider)
+
     @staticmethod
     def _parse_response(
         response: httpx.Response,

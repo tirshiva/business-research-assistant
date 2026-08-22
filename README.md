@@ -11,6 +11,7 @@ Current modules:
 - **Module 02** — External data layer (Open-Meteo + Nominatim clients)
 - **Module 03** — LangGraph foundation (typed state + query analyzer)
 - **Module 04** — Research planner (structured ResearchPlan via LLM abstraction)
+- **Module 05** — Real-world research agents (weather, geography, competition, government data)
 
 ## Features
 
@@ -24,6 +25,7 @@ Current modules:
 - LangGraph investigation graph (`START → query_analyzer → planner → END`)
 - Typed `InvestigationState` with deterministic query analysis
 - Research planner producing validated `ResearchPlan` (local or Bedrock LLM)
+- Specialized research agents with typed I/O, tools, confidence, and sources
 - pytest coverage with mocked HTTP/LLM; optional live integration tests
 - Docker + docker-compose for local development
 - Ruff for linting and formatting
@@ -169,10 +171,11 @@ app/
     state.py               # InvestigationState TypedDict
     nodes/                 # query_analyzer, planner
     graph.py               # START → query_analyzer → planner → END
+  agents/                  # weather, geography, competition, government_data
   llm/                     # LLMProvider abstraction (local, bedrock)
-  models/                  # WeatherData, LocationData, ResearchPlan
+  models/                  # WeatherData, LocationData, ResearchPlan, AgentResult
   services/
-    external/              # Open-Meteo + Nominatim clients
+    external/              # Open-Meteo, Nominatim, Overpass, data.gov.in
     investigation.py       # Graph execution service
     planner.py             # ResearchPlanner
   main.py                  # FastAPI entrypoint
@@ -182,9 +185,8 @@ docs/                      # Module documentation
 
 ## Out of scope (later modules)
 
-- Specialized research agent execution
-- LLM-backed query analyzer replacement
-- Business scoring
+- Multi-agent orchestration of research tasks inside LangGraph
+- Business scoring / recommendations
 - RAG / document retrieval
 - Frontend
 

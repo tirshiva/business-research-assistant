@@ -5,12 +5,23 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.agents import (
+    CompetitionAgent,
+    GeographyAgent,
+    GovernmentDataAgent,
+    WeatherAgent,
+)
 from app.api.routes import api_router
 from app.config import get_settings
 from app.core.cache import InMemoryCache
 from app.core.http import AsyncHttpClient
 from app.core.logging import get_logger, setup_logging
-from app.services.external import NominatimClient, OpenMeteoClient
+from app.services.external import (
+    DataGovInProvider,
+    NominatimClient,
+    OpenMeteoClient,
+    OverpassBusinessSearchProvider,
+)
 
 logger = get_logger(__name__)
 
@@ -43,11 +54,26 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         cache_ttl_seconds=settings.nominatim_cache_ttl_seconds,
         min_request_interval_seconds=settings.nominatim_min_request_interval_seconds,
     )
+    business_search = OverpassBusinessSearchProvider(
+        http_client,
+        base_url=settings.overpass_base_url,
+    )
+    government_data = DataGovInProvider(
+        http_client,
+        base_url=settings.data_gov_in_base_url,
+        api_key=settings.data_gov_in_api_key or None,
+    )
 
     app.state.http_client = http_client
     app.state.cache = cache
     app.state.open_meteo = open_meteo
     app.state.nominatim = nominatim
+    app.state.business_search = business_search
+    app.state.government_data = government_data
+    app.state.weather_agent = WeatherAgent(open_meteo)
+    app.state.geography_agent = GeographyAgent(nominatim)
+    app.state.competition_agent = CompetitionAgent(business_search)
+    app.state.government_data_agent = GovernmentDataAgent(government_data)
 
     try:
         yield

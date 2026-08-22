@@ -25,6 +25,10 @@ DEFAULT_CURRENT = (
     "precipitation,weather_code,wind_speed_10m,wind_direction_10m,cloud_cover"
 )
 DEFAULT_HOURLY = (
+    "temperature_2m,relative_humidity_2m,precipitation,precipitation_probability,"
+    "weather_code,wind_speed_10m,cloud_cover"
+)
+ARCHIVE_HOURLY = (
     "temperature_2m,relative_humidity_2m,precipitation,"
     "weather_code,wind_speed_10m,cloud_cover"
 )
@@ -156,7 +160,7 @@ class OpenMeteoClient:
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),
             "timezone": timezone,
-            "hourly": DEFAULT_HOURLY,
+            "hourly": ARCHIVE_HOURLY,
             "daily": DEFAULT_DAILY,
         }
         payload = await self._http.get(
@@ -305,6 +309,9 @@ class OpenMeteoClient:
                         raw, "relative_humidity_2m", index
                     ),
                     precipitation_mm=_series_value(raw, "precipitation", index),
+                    precipitation_probability_pct=_series_value(
+                        raw, "precipitation_probability", index
+                    ),
                     weather_code=_series_int(raw, "weather_code", index),
                     wind_speed_kmh=_series_value(raw, "wind_speed_10m", index),
                     cloud_cover_pct=_series_value(raw, "cloud_cover", index),
