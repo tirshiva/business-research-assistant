@@ -6,6 +6,7 @@ from app.evidence.models import (
     Evidence,
     SourceRecord,
 )
+from app.models.analysis import AnalysisInsights, AnalysisResult, CitedStatement
 from app.models.errors import APIError
 from app.models.investigation import InvestigationRequest, InvestigationResult
 from app.models.location import LocationData
@@ -19,6 +20,9 @@ from app.models.weather import (
 
 __all__ = [
     "APIError",
+    "AnalysisInsights",
+    "AnalysisResult",
+    "CitedStatement",
     "ClaimKind",
     "Contradiction",
     "CurrentWeather",

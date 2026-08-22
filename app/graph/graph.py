@@ -9,6 +9,7 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Send
 
 from app.graph.deps import ResearchOrchestrationDeps
+from app.graph.nodes.analysis import create_analysis_node
 from app.graph.nodes.evidence_collection import create_evidence_collection_node
 from app.graph.nodes.planner import create_planner_node
 from app.graph.nodes.query_analyzer import query_analyzer
@@ -29,7 +30,7 @@ def build_investigation_graph(
 
         START → query_analyzer → planner → task_router
               → parallel research_agent (Send fan-out)
-              → evidence_collection → END
+              → evidence_collection → analysis → END
     """
     orchestration = deps or ResearchOrchestrationDeps.mock()
 
@@ -42,13 +43,15 @@ def build_investigation_graph(
         "evidence_collection",
         create_evidence_collection_node(orchestration),
     )
+    graph.add_node("analysis", create_analysis_node(llm))
 
     graph.add_edge(START, "query_analyzer")
     graph.add_edge("query_analyzer", "planner")
     graph.add_edge("planner", "task_router")
     graph.add_conditional_edges("task_router", _fan_out_research)
     graph.add_edge("research_agent", "evidence_collection")
-    graph.add_edge("evidence_collection", END)
+    graph.add_edge("evidence_collection", "analysis")
+    graph.add_edge("analysis", END)
     return graph.compile()
 
 

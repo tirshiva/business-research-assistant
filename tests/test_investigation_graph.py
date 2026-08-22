@@ -85,7 +85,8 @@ async def test_graph_execution_start_to_end() -> None:
     assert "geography" in final_state["routed_agents"]
     assert final_state["agent_results"]
     assert final_state["evidence"]
-    assert final_state["opportunity_score"] is None
+    assert isinstance(final_state["opportunity_score"], float)
+    assert final_state["recommendation"]
 
 
 @pytest.mark.asyncio
@@ -110,8 +111,10 @@ async def test_graph_completion_status() -> None:
 
     assert result.status in {"completed", "partial"}
     assert result.analysis is not None
-    assert result.recommendation is None
+    assert result.recommendation is not None
+    assert result.opportunity_score is not None
     assert result.metadata.get("research_plan")
+    assert result.metadata.get("opportunity_scorecard")
     assert result.agent_runs
 
 

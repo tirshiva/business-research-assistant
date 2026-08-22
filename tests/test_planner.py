@@ -212,7 +212,9 @@ async def test_graph_planner_integration_with_mock_llm() -> None:
     assert "competition" in result.routed_agents
     assert "geography" in result.routed_agents
     assert "weather" in result.routed_agents
-    assert llm.calls == 1
+    assert llm.calls == 2
+    assert result.opportunity_score is not None
+    assert result.recommendation is not None
 
 
 @pytest.mark.asyncio

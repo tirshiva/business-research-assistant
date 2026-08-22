@@ -13,9 +13,12 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
+from app.agents.insight_builder import build_deterministic_insights
 from app.core.exceptions import LLMStructuredOutputError
 from app.core.logging import get_logger
+from app.evidence.models import Evidence
 from app.llm.base import LLMProvider
+from app.models.analysis import AnalysisInsights
 from app.models.research_plan import KNOWN_OBJECTIVES, ResearchPlan, ResearchTaskType
 
 logger = get_logger(__name__)
@@ -49,6 +52,8 @@ class LocalLLMProvider(LLMProvider):
 
         if response_model is ResearchPlan:
             payload = self._plan_from_prompt(user_prompt)
+        elif response_model is AnalysisInsights:
+            return self._insights_from_prompt(user_prompt)
         else:
             raise LLMStructuredOutputError(
                 f"LocalLLMProvider does not support model {response_model.__name__}",
@@ -91,6 +96,47 @@ class LocalLLMProvider(LLMProvider):
             "research_tasks": tasks,
         }
 
+    def _insights_from_prompt(self, user_prompt: str) -> AnalysisInsights:
+        """Derive cited insights from evidence embedded in the analysis prompt."""
+        context = self._extract_context(user_prompt)
+        evidence_payload = context.get("evidence") or []
+        evidence: list[Evidence] = []
+        if isinstance(evidence_payload, list):
+            for raw in evidence_payload:
+                if not isinstance(raw, dict):
+                    continue
+                try:
+                    evidence.append(Evidence.model_validate(self._coerce_evidence(raw)))
+                except (ValidationError, ValueError):
+                    continue
+        unavailable = context.get("unavailable_dimensions") or []
+        if not isinstance(unavailable, list):
+            unavailable = []
+        return build_deterministic_insights(
+            evidence,
+            business_type=_as_optional_str(context.get("business_type")),
+            location=_as_optional_str(context.get("location")),
+            unavailable_dimensions=[str(item) for item in unavailable],
+        )
+
+    @staticmethod
+    def _coerce_evidence(raw: dict[str, Any]) -> dict[str, Any]:
+        payload = dict(raw)
+        payload.setdefault("investigation_id", "analysis")
+        payload.setdefault("agent", "unknown")
+        payload.setdefault("claim", "unspecified")
+        payload.setdefault("value", payload.get("value"))
+        payload.setdefault("confidence", 0.5)
+        payload.setdefault(
+            "source",
+            {
+                "name": "validated-evidence",
+                "source_type": "other",
+                "reliability": "unknown",
+            },
+        )
+        return payload
+
     @staticmethod
     def _extract_context(user_prompt: str) -> dict[str, Any]:
         """Parse optional JSON context embedded by the planner service."""
@@ -103,6 +149,12 @@ class LocalLLMProvider(LLMProvider):
         except json.JSONDecodeError:
             return {}
         return payload if isinstance(payload, dict) else {}
+
+
+def _as_optional_str(value: object) -> str | None:
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
 
 
 def _humanize_business_type(value: str) -> str:

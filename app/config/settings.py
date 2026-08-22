@@ -56,6 +56,15 @@ class Settings(BaseSettings):
     evidence_stale_after_hours: float = 72.0
     evidence_low_confidence_as_error: bool = False
 
+    # Opportunity scoring (weights are normalized; they need not sum to 1)
+    score_weight_demand: float = 0.25
+    score_weight_competition: float = 0.20
+    score_weight_accessibility: float = 0.15
+    score_weight_infrastructure: float = 0.15
+    score_weight_market_indicators: float = 0.15
+    score_weight_risk: float = 0.10
+    score_critical_dimensions: str = "demand,competition,accessibility"
+
 
 @lru_cache
 def get_settings() -> Settings:
