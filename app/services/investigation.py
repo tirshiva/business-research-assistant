@@ -5,6 +5,7 @@ from __future__ import annotations
 from langgraph.graph.state import CompiledStateGraph
 from pydantic import ValidationError
 
+from app.config import get_settings
 from app.core.exceptions import InvestigationInputError
 from app.core.logging import get_logger
 from app.graph.graph import get_investigation_graph
@@ -27,6 +28,8 @@ class InvestigationService:
         """Execute the multi-agent investigation graph and return validated state."""
         request = self._validate_request(payload)
         initial_state = create_initial_state(request.user_query)
+        settings = get_settings()
+        recursion_limit = max(50, int(settings.max_research_iterations) * 25)
 
         logger.info(
             "Starting investigation id=%s query=%r",
@@ -34,7 +37,10 @@ class InvestigationService:
             request.user_query,
         )
 
-        final_state: InvestigationState = await self._graph.ainvoke(initial_state)
+        final_state: InvestigationState = await self._graph.ainvoke(
+            initial_state,
+            {"recursion_limit": recursion_limit},
+        )
         result = InvestigationResult.model_validate(final_state)
 
         logger.info(

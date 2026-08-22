@@ -50,6 +50,11 @@ class InvestigationState(TypedDict):
     opportunity_score: float | None
     recommendation: str | None
     confidence: float | None
+    critic_status: str | None
+    critic_confidence: float | None
+    critic_issues: list[str]
+    required_research: list[str]
+    research_iteration: int
     validation_errors: list[str]
     iteration: int
     status: InvestigationStatus
@@ -91,6 +96,11 @@ def create_initial_state(user_query: str) -> InvestigationState:
         opportunity_score=None,
         recommendation=None,
         confidence=None,
+        critic_status=None,
+        critic_confidence=None,
+        critic_issues=[],
+        required_research=[],
+        research_iteration=0,
         validation_errors=[],
         iteration=0,
         status="pending",

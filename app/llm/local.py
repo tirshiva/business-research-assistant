@@ -19,7 +19,12 @@ from app.core.logging import get_logger
 from app.evidence.models import Evidence
 from app.llm.base import LLMProvider
 from app.models.analysis import AnalysisInsights
-from app.models.research_plan import KNOWN_OBJECTIVES, ResearchPlan, ResearchTaskType
+from app.models.research_plan import (
+    KNOWN_OBJECTIVES,
+    SUPPORTED_RESEARCH_TASKS,
+    ResearchPlan,
+    ResearchTaskType,
+)
 
 logger = get_logger(__name__)
 
@@ -87,6 +92,12 @@ class LocalLLMProvider(LLMProvider):
             business_type=business_type,
             objective=objective,
         )
+        required = context.get("required_research") or []
+        if isinstance(required, list):
+            for task in required:
+                name = str(task).strip().lower()
+                if name in SUPPORTED_RESEARCH_TASKS and name not in tasks:
+                    tasks.append(name)
 
         return {
             "business_type": business_type,

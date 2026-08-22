@@ -28,8 +28,21 @@ def create_task_router_node(deps: ResearchOrchestrationDeps):
             return {"iteration": iteration, "routed_agents": []}
 
         research_plan = list(state.get("research_plan") or [])
-        routed_agents = select_executable_agents(research_plan)
+        required_research = list(state.get("required_research") or [])
+        if required_research:
+            routed_agents = select_executable_agents(required_research)
+        else:
+            routed_agents = select_executable_agents(research_plan)
         unavailable = select_unavailable_dimensions(research_plan)
+
+        agents_with_evidence = {
+            item.get("agent")
+            for item in (state.get("evidence") or [])
+            if isinstance(item, dict) and item.get("agent")
+        }
+        routed_agents = [
+            agent for agent in routed_agents if agent not in agents_with_evidence
+        ]
 
         latitude = state.get("latitude")
         longitude = state.get("longitude")

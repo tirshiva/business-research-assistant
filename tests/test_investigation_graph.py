@@ -45,6 +45,9 @@ def test_initial_state_defaults() -> None:
     assert state["opportunity_score"] is None
     assert state["recommendation"] is None
     assert state["confidence"] is None
+    assert state["critic_status"] is None
+    assert state["required_research"] == []
+    assert state["research_iteration"] == 0
     assert state["validation_errors"] == []
     assert state["iteration"] == 0
     assert state["status"] == "pending"

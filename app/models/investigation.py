@@ -51,6 +51,11 @@ class InvestigationResult(BaseModel):
     opportunity_score: float | None = None
     recommendation: str | None = None
     confidence: float | None = None
+    critic_status: str | None = None
+    critic_confidence: float | None = None
+    critic_issues: list[str] = Field(default_factory=list)
+    required_research: list[str] = Field(default_factory=list)
+    research_iteration: int = 0
     validation_errors: list[str] = Field(default_factory=list)
     iteration: int = 0
     status: Literal[

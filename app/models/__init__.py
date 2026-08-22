@@ -7,6 +7,7 @@ from app.evidence.models import (
     SourceRecord,
 )
 from app.models.analysis import AnalysisInsights, AnalysisResult, CitedStatement
+from app.models.critic import CriticIssue, CriticVerdict
 from app.models.errors import APIError
 from app.models.investigation import InvestigationRequest, InvestigationResult
 from app.models.location import LocationData
@@ -25,6 +26,8 @@ __all__ = [
     "CitedStatement",
     "ClaimKind",
     "Contradiction",
+    "CriticIssue",
+    "CriticVerdict",
     "CurrentWeather",
     "DailyWeather",
     "Evidence",

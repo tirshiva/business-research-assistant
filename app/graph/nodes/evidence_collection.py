@@ -18,12 +18,14 @@ def create_evidence_collection_node(deps: ResearchOrchestrationDeps):
 
     async def evidence_collection(state: InvestigationState) -> dict[str, Any]:
         iteration = int(state.get("iteration") or 0) + 1
+        research_iteration = int(state.get("research_iteration") or 0) + 1
         investigation_id = state["investigation_id"]
         agent_results = list(state.get("agent_results") or [])
         unavailable = list(state.get("unavailable_dimensions") or [])
         metadata = dict(state.get("metadata") or {})
         errors = list(state.get("validation_errors") or [])
 
+        existing_evidence = list(state.get("evidence") or [])
         evidence_items: list[dict[str, Any]] = []
         contradiction_summaries: list[str] = list(state.get("contradictions") or [])
         submitted = 0
@@ -48,6 +50,11 @@ def create_evidence_collection_node(deps: ResearchOrchestrationDeps):
             if not result.findings:
                 continue
 
+            if result.agent in {
+                item.get("agent") for item in existing_evidence if item.get("agent")
+            }:
+                continue
+
             try:
                 stored = await deps.evidence_service.submit_agent_result(
                     investigation_id=investigation_id,
@@ -57,6 +64,16 @@ def create_evidence_collection_node(deps: ResearchOrchestrationDeps):
                 submitted += len(stored)
                 evidence_items.extend(item.model_dump(mode="json") for item in stored)
             except EvidenceValidationError as exc:
+                duplicate_only = bool(exc.issues) and all(
+                    issue.get("code") == "duplicate_evidence" for issue in exc.issues
+                )
+                if duplicate_only:
+                    logger.info(
+                        "Skipping duplicate evidence id=%s agent=%s",
+                        investigation_id,
+                        result.agent,
+                    )
+                    continue
                 errors.append(
                     f"evidence_validation_failed:{result.agent}:{exc.message}"
                 )
@@ -66,6 +83,16 @@ def create_evidence_collection_node(deps: ResearchOrchestrationDeps):
                     result.agent,
                     exc.issues,
                 )
+
+        merged: dict[str, dict[str, Any]] = {}
+        orphans: list[dict[str, Any]] = []
+        for item in [*existing_evidence, *evidence_items]:
+            key = str(item.get("evidence_id") or "")
+            if key:
+                merged[key] = item
+            else:
+                orphans.append(item)
+        evidence_items = [*merged.values(), *orphans]
 
         # Pull any repository contradictions for this investigation.
         repo_contradictions = await deps.evidence_service.list_contradictions(
@@ -121,6 +148,7 @@ def create_evidence_collection_node(deps: ResearchOrchestrationDeps):
             "validation_errors": errors,
             "status": final_status,
             "iteration": iteration,
+            "research_iteration": research_iteration,
             "metadata": metadata,
         }
 

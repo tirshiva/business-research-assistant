@@ -13,7 +13,9 @@ START
   → parallel research_agent
   → evidence_collection
   → analysis
-  → END
+  → critic
+      ├─ PASS → END
+      └─ FAIL → planner
 ```
 
 The analysis node receives **only validated evidence** already stored on

@@ -93,7 +93,10 @@ async def test_partial_failure_continues_other_agents() -> None:
         llm=PlanLLM(["weather", "competition", "geography"]),
         deps=deps,
     )
-    final_state = await graph.ainvoke(create_initial_state(SAMPLE_QUERY))
+    final_state = await graph.ainvoke(
+        create_initial_state(SAMPLE_QUERY),
+        {"recursion_limit": 50},
+    )
 
     assert final_state["status"] == "partial"
     assert "competition" in final_state["unavailable_dimensions"]
@@ -101,8 +104,9 @@ async def test_partial_failure_continues_other_agents() -> None:
     assert statuses["competition"] == "failed"
     assert statuses["weather"] == "completed"
     assert statuses["geography"] == "completed"
-    # Successful agents still contributed evidence.
     assert final_state["evidence"]
+    assert deps.competition_agent.run.await_count >= 1
+    assert deps.competition_agent.run.await_count <= 3
 
 
 @pytest.mark.asyncio
@@ -112,9 +116,14 @@ async def test_unsupported_tasks_marked_unavailable() -> None:
         llm=PlanLLM(["demographics", "weather", "infrastructure"]),
         deps=deps,
     )
-    final_state = await graph.ainvoke(create_initial_state(SAMPLE_QUERY))
+    final_state = await graph.ainvoke(
+        create_initial_state(SAMPLE_QUERY),
+        {"recursion_limit": 50},
+    )
 
-    assert final_state["routed_agents"] == ["weather"]
+    agents_run = {item["agent"] for item in final_state["agent_runs"]}
+    assert "weather" in agents_run
+    assert "competition" in agents_run
     assert "demographics" in final_state["unavailable_dimensions"]
     assert "infrastructure" in final_state["unavailable_dimensions"]
 
@@ -126,8 +135,13 @@ async def test_agent_run_observability_fields() -> None:
         llm=PlanLLM(["geography"]),
         deps=deps,
     )
-    final_state = await graph.ainvoke(create_initial_state(SAMPLE_QUERY))
-    run = final_state["agent_runs"][0]
+    final_state = await graph.ainvoke(
+        create_initial_state(SAMPLE_QUERY),
+        {"recursion_limit": 50},
+    )
+    run = next(
+        item for item in final_state["agent_runs"] if item["agent"] == "geography"
+    )
 
     assert run["investigation_id"] == final_state["investigation_id"]
     assert run["agent"] == "geography"
@@ -150,11 +164,9 @@ async def test_investigation_service_end_to_end_orchestration() -> None:
     result = await service.run({"user_query": SAMPLE_QUERY})
 
     assert result.status in {"completed", "partial"}
-    assert set(result.routed_agents) == {
-        "weather",
-        "geography",
-        "government_data",
-    }
+    agents_run = {item["agent"] for item in result.agent_runs}
+    assert {"weather", "geography", "government_data"}.issubset(agents_run)
+    assert "competition" in agents_run
     assert result.evidence
     assert result.metadata.get("evidence_collection")
 

@@ -50,6 +50,8 @@ class ResearchPlanner:
         location: str | None = None,
         objective: str | None = None,
         target_customer: str | None = None,
+        required_research: list[str] | None = None,
+        critic_issues: list[str] | None = None,
     ) -> ResearchPlan:
         """Call the LLM with retries and return a validated ResearchPlan."""
         user_prompt = self._build_user_prompt(
@@ -58,6 +60,8 @@ class ResearchPlanner:
             location=location,
             objective=objective,
             target_customer=target_customer,
+            required_research=required_research,
+            critic_issues=critic_issues,
         )
 
         attempts = self._max_retries + 1
@@ -108,6 +112,8 @@ class ResearchPlanner:
         location: str | None,
         objective: str | None,
         target_customer: str | None,
+        required_research: list[str] | None = None,
+        critic_issues: list[str] | None = None,
     ) -> str:
         context: dict[str, Any] = {
             "user_query": user_query,
@@ -115,6 +121,8 @@ class ResearchPlanner:
             "location": location,
             "objective": objective,
             "target_customer": target_customer,
+            "required_research": list(required_research or []),
+            "critic_issues": list(critic_issues or []),
         }
         return (
             "Create a structured research plan for the following investigation.\n"

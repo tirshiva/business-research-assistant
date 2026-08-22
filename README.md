@@ -15,6 +15,7 @@ Current modules:
 - **Module 06** — Evidence and provenance system
 - **Module 07** — Multi-agent LangGraph orchestration
 - **Module 08** — Business analysis and opportunity scoring
+- **Module 09** — Critic and self-correction workflow
 
 ## Features
 
@@ -32,6 +33,7 @@ Current modules:
 - Evidence repository with validation, contradictions, and claim provenance
 - Multi-agent LangGraph orchestration with dynamic routing and parallel research
 - Analysis agent with cited insights and deterministic weighted opportunity scoring
+- Critic quality-control loop with cyclic re-research and a max-iteration halt
 - pytest coverage with mocked HTTP/LLM; optional live integration tests
 - Docker + docker-compose for local development
 - Ruff for linting and formatting
@@ -81,6 +83,7 @@ calling the public Nominatim service.
 | `SCORE_WEIGHT_MARKET_INDICATORS` | Opportunity score weight: market indicators | `0.15` |
 | `SCORE_WEIGHT_RISK` | Opportunity score weight: risk favorability | `0.10` |
 | `SCORE_CRITICAL_DIMENSIONS` | Dimensions required to avoid `INSUFFICIENT DATA` | `demand,competition,accessibility` |
+| `MAX_RESEARCH_ITERATIONS` | Critic self-correction cap before halt | `3` |
 | `RUN_INTEGRATION_TESTS` | Enable live API tests when `true` | `false` |
 
 See `.env.example` for a complete template. Never commit real secrets.
@@ -188,11 +191,12 @@ app/
     logging.py             # Centralized logging
   graph/
     state.py               # InvestigationState TypedDict
-    nodes/                 # analyzer, planner, router, research, evidence, analysis
+    nodes/                 # analyzer, planner, router, research, evidence, analysis, critic
     graph.py               # Multi-agent orchestration graph
     routing.py             # Plan task → agent mapping
     deps.py                # Injected agent/evidence dependencies
   agents/                  # weather, geography, competition, government, analysis
+  critic/                  # Quality-control checks and PASS/FAIL verdict
   scoring/                 # Deterministic dimension weights and overall score
   evidence/                # Evidence models, repository, validator, service
   llm/                     # LLMProvider abstraction (local, bedrock)

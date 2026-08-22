@@ -10,6 +10,7 @@ from langgraph.types import Send
 
 from app.graph.deps import ResearchOrchestrationDeps
 from app.graph.nodes.analysis import create_analysis_node
+from app.graph.nodes.critic import create_critic_node, route_after_critic
 from app.graph.nodes.evidence_collection import create_evidence_collection_node
 from app.graph.nodes.planner import create_planner_node
 from app.graph.nodes.query_analyzer import query_analyzer
@@ -30,7 +31,8 @@ def build_investigation_graph(
 
         START → query_analyzer → planner → task_router
               → parallel research_agent (Send fan-out)
-              → evidence_collection → analysis → END
+              → evidence_collection → analysis → critic
+              → (FAIL → planner) or END
     """
     orchestration = deps or ResearchOrchestrationDeps.mock()
 
@@ -44,6 +46,7 @@ def build_investigation_graph(
         create_evidence_collection_node(orchestration),
     )
     graph.add_node("analysis", create_analysis_node(llm))
+    graph.add_node("critic", create_critic_node())
 
     graph.add_edge(START, "query_analyzer")
     graph.add_edge("query_analyzer", "planner")
@@ -51,7 +54,12 @@ def build_investigation_graph(
     graph.add_conditional_edges("task_router", _fan_out_research)
     graph.add_edge("research_agent", "evidence_collection")
     graph.add_edge("evidence_collection", "analysis")
-    graph.add_edge("analysis", END)
+    graph.add_edge("analysis", "critic")
+    graph.add_conditional_edges(
+        "critic",
+        route_after_critic,
+        {"planner": "planner", "end": END},
+    )
     return graph.compile()
 
 
@@ -102,6 +110,11 @@ def _snapshot_state(state: InvestigationState) -> dict[str, Any]:
         "opportunity_score": state.get("opportunity_score"),
         "recommendation": state.get("recommendation"),
         "confidence": state.get("confidence"),
+        "critic_status": state.get("critic_status"),
+        "critic_confidence": state.get("critic_confidence"),
+        "critic_issues": list(state.get("critic_issues") or []),
+        "required_research": list(state.get("required_research") or []),
+        "research_iteration": state.get("research_iteration") or 0,
         "validation_errors": list(state.get("validation_errors") or []),
         "iteration": state.get("iteration") or 0,
         "status": state.get("status") or "researching",

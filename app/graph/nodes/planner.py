@@ -10,6 +10,7 @@ from app.core.logging import get_logger
 from app.graph.state import InvestigationState
 from app.llm import get_llm_provider
 from app.llm.base import LLMProvider
+from app.models.research_plan import SUPPORTED_RESEARCH_TASKS
 from app.services.planner import ResearchPlanner
 
 logger = get_logger(__name__)
@@ -53,6 +54,8 @@ def create_planner_node(llm: LLMProvider | None = None):
                 location=state.get("location"),
                 objective=state.get("objective"),
                 target_customer=state.get("target_customer"),
+                required_research=list(state.get("required_research") or []),
+                critic_issues=list(state.get("critic_issues") or []),
             )
         except PlannerError as exc:
             error = f"planner_failed: {exc.message}"
@@ -78,15 +81,19 @@ def create_planner_node(llm: LLMProvider | None = None):
         metadata = dict(state.get("metadata") or {})
         metadata["research_plan"] = plan.model_dump(mode="json")
 
+        tasks = list(plan.research_tasks)
+        for task in state.get("required_research") or []:
+            name = str(task).strip().lower()
+            if name in SUPPORTED_RESEARCH_TASKS and name not in tasks:
+                tasks.append(name)
+
         return {
             "business_type": plan.business_type,
             "location": plan.location,
             "objective": plan.objective,
             "target_customer": plan.target_customer,
-            "research_plan": list(plan.research_tasks),
-            "analysis": (
-                "Research plan created with tasks: " + ", ".join(plan.research_tasks)
-            ),
+            "research_plan": tasks,
+            "analysis": ("Research plan created with tasks: " + ", ".join(tasks)),
             "validation_errors": [],
             "status": "planned",
             "iteration": iteration,
