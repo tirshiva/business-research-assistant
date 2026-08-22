@@ -16,6 +16,7 @@ from app.config import get_settings
 from app.core.cache import InMemoryCache
 from app.core.http import AsyncHttpClient
 from app.core.logging import get_logger, setup_logging
+from app.evidence import EvidenceService, EvidenceValidator, InMemoryEvidenceRepository
 from app.services.external import (
     DataGovInProvider,
     NominatimClient,
@@ -74,6 +75,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.geography_agent = GeographyAgent(nominatim)
     app.state.competition_agent = CompetitionAgent(business_search)
     app.state.government_data_agent = GovernmentDataAgent(government_data)
+
+    evidence_repository = InMemoryEvidenceRepository()
+    evidence_validator = EvidenceValidator(
+        min_confidence=settings.evidence_min_confidence,
+        stale_after_hours=settings.evidence_stale_after_hours,
+        treat_low_confidence_as_error=settings.evidence_low_confidence_as_error,
+    )
+    app.state.evidence_repository = evidence_repository
+    app.state.evidence_validator = evidence_validator
+    app.state.evidence_service = EvidenceService(
+        evidence_repository,
+        evidence_validator,
+    )
 
     try:
         yield

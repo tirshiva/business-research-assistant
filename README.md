@@ -12,6 +12,7 @@ Current modules:
 - **Module 03** — LangGraph foundation (typed state + query analyzer)
 - **Module 04** — Research planner (structured ResearchPlan via LLM abstraction)
 - **Module 05** — Real-world research agents (weather, geography, competition, government data)
+- **Module 06** — Evidence and provenance system
 
 ## Features
 
@@ -26,6 +27,7 @@ Current modules:
 - Typed `InvestigationState` with deterministic query analysis
 - Research planner producing validated `ResearchPlan` (local or Bedrock LLM)
 - Specialized research agents with typed I/O, tools, confidence, and sources
+- Evidence repository with validation, contradictions, and claim provenance
 - pytest coverage with mocked HTTP/LLM; optional live integration tests
 - Docker + docker-compose for local development
 - Ruff for linting and formatting
@@ -172,6 +174,7 @@ app/
     nodes/                 # query_analyzer, planner
     graph.py               # START → query_analyzer → planner → END
   agents/                  # weather, geography, competition, government_data
+  evidence/                # Evidence models, repository, validator, service
   llm/                     # LLMProvider abstraction (local, bedrock)
   models/                  # WeatherData, LocationData, ResearchPlan, AgentResult
   services/

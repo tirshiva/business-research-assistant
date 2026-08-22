@@ -88,3 +88,17 @@ class PlannerError(Exception):
         self.message = message
         self.details = details
         self.attempts = attempts
+
+
+class EvidenceValidationError(ValueError):
+    """Raised when evidence fails structural validation before storage."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        issues: list[dict[str, object]] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.message = message
+        self.issues = issues or []

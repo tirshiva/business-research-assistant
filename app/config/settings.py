@@ -51,6 +51,11 @@ class Settings(BaseSettings):
     bedrock_region: str = "ap-south-1"
     bedrock_model_id: str = ""
 
+    # Evidence / provenance
+    evidence_min_confidence: float = 0.3
+    evidence_stale_after_hours: float = 72.0
+    evidence_low_confidence_as_error: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:
