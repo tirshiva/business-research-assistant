@@ -62,9 +62,9 @@ async def query_analyzer(state: InvestigationState) -> dict[str, Any]:
             "iteration": iteration,
         }
 
-    business_type = _infer_business_type(query)
-    location = _infer_location(query)
-    target_customer = _infer_target_customer(query)
+    business_type = state.get("business_type") or _infer_business_type(query)
+    location = state.get("location") or _infer_location(query)
+    target_customer = state.get("target_customer") or _infer_target_customer(query)
     objective = _build_objective(query, business_type=business_type, location=location)
 
     logger.info(

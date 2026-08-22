@@ -8,6 +8,8 @@ from app.config import get_settings
 from app.core.logging import get_logger
 from app.critic import critique_investigation
 from app.evidence.models import Evidence
+from app.graph.deps import ResearchOrchestrationDeps
+from app.graph.progress import emit_progress
 from app.graph.state import InvestigationState
 from app.models.analysis import AnalysisInsights
 
@@ -16,7 +18,7 @@ logger = get_logger(__name__)
 CriticRoute = Literal["planner", "end"]
 
 
-def create_critic_node():
+def create_critic_node(deps: ResearchOrchestrationDeps | None = None):
     """Build the critic node. Settings are read per invocation."""
 
     async def critic_node(state: InvestigationState) -> dict[str, Any]:
@@ -37,6 +39,10 @@ def create_critic_node():
                 "critic_issues": ["Investigation failed before critic evaluation"],
                 "required_research": [],
             }
+
+        investigation_id = state.get("investigation_id") or ""
+        if deps is not None:
+            await emit_progress(deps, "mark_stage", investigation_id, "REVIEWING")
 
         evidence = _load_evidence(state.get("evidence") or [])
         insights = _load_insights(metadata.get("analysis"))

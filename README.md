@@ -18,6 +18,7 @@ Current modules:
 - **Module 09** — Critic and self-correction workflow
 - **Module 10** — Persistence and FastAPI investigation API
 - **Module 11** — Government document RAG (pgvector + documents agent)
+- **Module 12** — React frontend and production deployment
 
 ## Features
 
@@ -38,6 +39,7 @@ Current modules:
 - FastAPI investigation API (`POST/GET /investigations`) with PostgreSQL persistence
 - Critic quality-control loop with cyclic re-research and a max-iteration halt
 - Document RAG (parse → chunk → embed → pgvector / SQLite cosine) with cited passages
+- React investigation UI with live progress, results, and evidence explorer
 - pytest coverage with mocked HTTP/LLM; optional live integration tests
 - Docker + docker-compose for local development
 - Ruff for linting and formatting
@@ -93,6 +95,8 @@ calling the public Nominatim service.
 | `RAG_CHUNK_OVERLAP` | Overlap between chunks | `80` |
 | `RAG_TOP_K` | Retriever hit count | `5` |
 | `RAG_SEED_ON_STARTUP` | Ingest sample public corpus if empty | `true` |
+| `CORS_ORIGINS` | Allowed browser origins (comma-separated) | `http://localhost:5173,http://localhost:8080` |
+| `SENTRY_DSN` | Optional Sentry DSN | _(empty)_ |
 | `RUN_INTEGRATION_TESTS` | Enable live API tests when `true` | `false` |
 
 See `.env.example` for a complete template. Never commit real secrets.
@@ -106,7 +110,9 @@ uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 Then open:
 
 - Health: http://localhost:8000/health
+- Ready: http://localhost:8000/ready
 - Interactive docs: http://localhost:8000/docs
+- Web UI (Vite): from `web/`, `npm install && npm run dev` → http://localhost:5173
 
 Create an investigation:
 
@@ -123,6 +129,7 @@ docker compose up --build
 ```
 
 The Compose `db` service uses `pgvector/pgvector:pg16` so `CREATE EXTENSION vector` succeeds.
+The API is on http://localhost:8000 and the React UI on http://localhost:8080.
 
 ## Using the investigation graph
 
@@ -227,14 +234,16 @@ app/
     investigation.py       # Graph execution service
     investigation_app.py   # Persist + public API orchestration
     planner.py             # ResearchPlanner
+    progress.py            # Public investigation progress sink
   main.py                  # FastAPI entrypoint
+web/                       # React investigation UI
 tests/                     # Unit + optional integration tests
 docs/                      # Module documentation
 ```
 
 ## Out of scope (later modules)
 
-- Frontend
+- Multi-user accounts / authentication
 
 ## License
 

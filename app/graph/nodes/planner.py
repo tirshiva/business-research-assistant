@@ -7,6 +7,8 @@ from typing import Any
 from app.config import get_settings
 from app.core.exceptions import PlannerError
 from app.core.logging import get_logger
+from app.graph.deps import ResearchOrchestrationDeps
+from app.graph.progress import emit_progress
 from app.graph.state import InvestigationState
 from app.llm import get_llm_provider
 from app.llm.base import LLMProvider
@@ -16,7 +18,10 @@ from app.services.planner import ResearchPlanner
 logger = get_logger(__name__)
 
 
-def create_planner_node(llm: LLMProvider | None = None):
+def create_planner_node(
+    llm: LLMProvider | None = None,
+    deps: ResearchOrchestrationDeps | None = None,
+):
     """Build a planner node closure bound to an LLM provider."""
 
     settings = get_settings()
@@ -86,6 +91,17 @@ def create_planner_node(llm: LLMProvider | None = None):
             name = str(task).strip().lower()
             if name in SUPPORTED_RESEARCH_TASKS and name not in tasks:
                 tasks.append(name)
+
+        if deps is not None:
+            await emit_progress(
+                deps,
+                "record_plan",
+                state.get("investigation_id") or "",
+                plan=tasks,
+                business_type=plan.business_type,
+                location=plan.location,
+                target_customer=plan.target_customer,
+            )
 
         return {
             "business_type": plan.business_type,

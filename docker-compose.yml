@@ -27,11 +27,18 @@ services:
       APP_ENV: development
       LOG_LEVEL: INFO
       DATABASE_URL: postgresql+asyncpg://user:password@db:5432/ibrda
+      CORS_ORIGINS: http://localhost:5173,http://localhost:8080
     volumes:
       - ./app:/app/app:ro
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     command:
       [
         "uvicorn",
@@ -42,4 +49,15 @@ services:
         "8000",
         "--reload",
       ]
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
     restart: unless-stopped

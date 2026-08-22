@@ -13,6 +13,7 @@ from app.agents.schemas import AgentResult
 from app.agents.weather import WeatherAgentInput
 from app.core.logging import get_logger
 from app.graph.deps import ResearchOrchestrationDeps
+from app.graph.progress import emit_progress
 from app.graph.state import AgentWorkItem
 
 logger = get_logger(__name__)
@@ -96,6 +97,16 @@ def create_research_agent_node(deps: ResearchOrchestrationDeps):
             status,
             error,
             findings_count,
+        )
+
+        await emit_progress(
+            deps,
+            "mark_agent_finished",
+            investigation_id,
+            agent_name,
+            status=status,
+            findings_count=findings_count,
+            error=error,
         )
 
         return {

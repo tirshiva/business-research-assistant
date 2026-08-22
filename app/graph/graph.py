@@ -38,15 +38,15 @@ def build_investigation_graph(
 
     graph = StateGraph(InvestigationState)
     graph.add_node("query_analyzer", query_analyzer)
-    graph.add_node("planner", create_planner_node(llm))
+    graph.add_node("planner", create_planner_node(llm, orchestration))
     graph.add_node("task_router", create_task_router_node(orchestration))
     graph.add_node("research_agent", create_research_agent_node(orchestration))
     graph.add_node(
         "evidence_collection",
         create_evidence_collection_node(orchestration),
     )
-    graph.add_node("analysis", create_analysis_node(llm))
-    graph.add_node("critic", create_critic_node())
+    graph.add_node("analysis", create_analysis_node(llm, orchestration))
+    graph.add_node("critic", create_critic_node(orchestration))
 
     graph.add_edge(START, "query_analyzer")
     graph.add_edge("query_analyzer", "planner")

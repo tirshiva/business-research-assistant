@@ -8,6 +8,7 @@ from app.agents.schemas import AgentResult
 from app.core.exceptions import EvidenceValidationError
 from app.core.logging import get_logger
 from app.graph.deps import ResearchOrchestrationDeps
+from app.graph.progress import emit_progress
 from app.graph.state import InvestigationState
 
 logger = get_logger(__name__)
@@ -137,6 +138,14 @@ def create_evidence_collection_node(deps: ResearchOrchestrationDeps):
             final_status,
             submitted,
             unavailable,
+        )
+
+        await emit_progress(deps, "mark_stage", investigation_id, "VALIDATING")
+        await emit_progress(
+            deps,
+            "record_iteration",
+            investigation_id,
+            research_iteration,
         )
 
         return {

@@ -7,6 +7,7 @@ from typing import Any
 from app.core.exceptions import ExternalServiceError
 from app.core.logging import get_logger
 from app.graph.deps import ResearchOrchestrationDeps
+from app.graph.progress import emit_progress
 from app.graph.routing import select_executable_agents, select_unavailable_dimensions
 from app.graph.state import InvestigationState
 
@@ -92,6 +93,14 @@ def create_task_router_node(deps: ResearchOrchestrationDeps):
         logger.info(
             "Task router id=%s routed_agents=%s unavailable=%s",
             investigation_id,
+            routed_agents,
+            unavailable,
+        )
+
+        await emit_progress(
+            deps,
+            "mark_agents_running",
+            investigation_id or "",
             routed_agents,
             unavailable,
         )

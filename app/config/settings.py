@@ -75,6 +75,12 @@ class Settings(BaseSettings):
     rag_top_k: int = 5
     rag_seed_on_startup: bool = True
 
+    # Frontend / production
+    cors_origins: str = (
+        "http://localhost:5173,http://localhost:3000,http://localhost:8080"
+    )
+    sentry_dsn: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

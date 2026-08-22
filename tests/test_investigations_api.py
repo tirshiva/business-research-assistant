@@ -56,12 +56,27 @@ def test_create_and_retrieve_investigation(settings_env: None) -> None:
         assert "metadata" not in body
         assert body["recommendation"]
         assert body["plan"]
+        assert body["stage"] in {
+            "CREATED",
+            "PLANNING",
+            "RESEARCHING",
+            "VALIDATING",
+            "ANALYZING",
+            "REVIEWING",
+            "COMPLETED",
+            "FAILED",
+        }
+        assert "agents" in body
+        assert "evidence_count" in body
+        assert "research_iteration" in body
+        assert "insights" in body
 
         evidence = client.get(f"/investigations/{investigation_id}/evidence")
         assert evidence.status_code == 200
         items = evidence.json()["items"]
         assert items
         assert "source_name" in items[0]
+        assert "timestamp" in items[0]
         assert "allowed_tools" not in items[0]
 
         report = client.get(f"/investigations/{investigation_id}/report")
@@ -97,6 +112,41 @@ def test_create_investigation_rejects_empty_query(settings_env: None) -> None:
         missing = client.post("/investigations", json={})
         assert missing.status_code == 400
         assert missing.json()["code"] == "invalid_request"
+    finally:
+        client.__exit__(None, None, None)
+
+
+def test_create_investigation_from_form_fields(settings_env: None) -> None:
+    client = _client(settings_env)
+    try:
+        created = client.post(
+            "/investigations",
+            json={
+                "business_type": "cloud kitchen",
+                "location": "Sector 62, Noida",
+                "target_customer": "office workers",
+                "budget": "20 lakh",
+                "research_question": (
+                    "Is Sector 62, Noida a good location for a cloud kitchen?"
+                ),
+            },
+        )
+        assert created.status_code == 202
+        investigation_id = created.json()["id"]
+        status = client.get(f"/investigations/{investigation_id}/status")
+        payload = status.json()
+        assert payload["status"] == "COMPLETED"
+        assert payload["stage"] == "COMPLETED"
+        assert payload["evidence_count"] >= 1
+        assert "running" in payload["agents"]
+        detail = client.get(f"/investigations/{investigation_id}")
+        body = detail.json()
+        assert body["budget"] == "20 lakh"
+        assert body["business_type"]
+        assert body["scores"] is None or "dimensions" in body["scores"]
+        report = client.get(f"/investigations/{investigation_id}/report")
+        assert report.status_code == 200
+        assert "insights" in report.json()
     finally:
         client.__exit__(None, None, None)
 

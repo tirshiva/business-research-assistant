@@ -78,15 +78,18 @@ def create_initial_state(
     user_query: str,
     *,
     investigation_id: str | None = None,
+    business_type: str | None = None,
+    location: str | None = None,
+    target_customer: str | None = None,
 ) -> InvestigationState:
     """Build a valid initial :class:`InvestigationState` for graph execution."""
     return InvestigationState(
         investigation_id=investigation_id or str(uuid.uuid4()),
         user_query=user_query.strip(),
-        business_type=None,
-        location=None,
+        business_type=business_type,
+        location=location,
         objective=None,
-        target_customer=None,
+        target_customer=target_customer,
         research_plan=[],
         latitude=None,
         longitude=None,

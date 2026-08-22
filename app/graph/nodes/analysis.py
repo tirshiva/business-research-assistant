@@ -8,6 +8,8 @@ from app.agents.analysis import AnalysisAgent
 from app.config import get_settings
 from app.core.logging import get_logger
 from app.evidence.models import Evidence
+from app.graph.deps import ResearchOrchestrationDeps
+from app.graph.progress import emit_progress
 from app.graph.state import InvestigationState
 from app.llm import get_llm_provider
 from app.llm.base import LLMProvider
@@ -39,7 +41,10 @@ def scoring_config_from_settings() -> ScoringConfig:
     )
 
 
-def create_analysis_node(llm: LLMProvider | None = None):
+def create_analysis_node(
+    llm: LLMProvider | None = None,
+    deps: ResearchOrchestrationDeps | None = None,
+):
     """Build the analysis node bound to an LLM (insights only) and scoring config."""
 
     provider = llm or get_llm_provider()
@@ -56,6 +61,9 @@ def create_analysis_node(llm: LLMProvider | None = None):
 
         evidence = _load_evidence(state.get("evidence") or [])
         metadata = dict(state.get("metadata") or {})
+        investigation_id = state.get("investigation_id") or ""
+        if deps is not None:
+            await emit_progress(deps, "mark_stage", investigation_id, "ANALYZING")
 
         result = await agent.run(
             evidence,

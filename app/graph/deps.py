@@ -29,6 +29,7 @@ class ResearchOrchestrationDeps:
     documents_agent: DocumentsAgent
     evidence_service: EvidenceService
     nominatim: NominatimClient | None = None
+    progress_sink: Any = None
 
     def get_agent(self, name: str) -> Any:
         mapping = {

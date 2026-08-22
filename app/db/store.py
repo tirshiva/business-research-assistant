@@ -31,12 +31,25 @@ class InvestigationStore:
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = session_factory
 
-    async def create(self, query: str, *, investigation_id: str | None = None) -> str:
+    async def create(
+        self,
+        query: str,
+        *,
+        investigation_id: str | None = None,
+        business_type: str | None = None,
+        location: str | None = None,
+        target_customer: str | None = None,
+        budget: str | None = None,
+    ) -> str:
         """Insert a CREATED investigation and return its id."""
         async with self._sessions() as session:
             row = InvestigationRow(
                 query=query,
                 status="CREATED",
+                business_type=business_type,
+                location=location,
+                target_customer=target_customer,
+                budget=budget,
             )
             if investigation_id:
                 row.id = investigation_id
@@ -89,6 +102,8 @@ class InvestigationStore:
             row.target_customer = result.target_customer
             row.plan = list(result.research_plan)
             row.scores = (result.metadata or {}).get("opportunity_scorecard")
+            insights = (result.metadata or {}).get("analysis")
+            row.insights = insights if isinstance(insights, dict) else None
             row.opportunity_score = result.opportunity_score
             row.recommendation_label = result.recommendation
             row.confidence = result.confidence
@@ -126,6 +141,101 @@ class InvestigationStore:
                     )
                 )
             await session.commit()
+
+    async def update_public_fields(
+        self,
+        investigation_id: str,
+        *,
+        status: str | None = None,
+        plan: list[str] | None = None,
+        business_type: str | None = None,
+        location: str | None = None,
+        target_customer: str | None = None,
+        research_iteration: int | None = None,
+    ) -> None:
+        async with self._sessions() as session:
+            row = await session.get(InvestigationRow, investigation_id)
+            if row is None:
+                raise InvestigationNotFoundError(investigation_id)
+            if status is not None:
+                row.status = status
+            if plan is not None:
+                row.plan = plan
+            if business_type is not None:
+                row.business_type = business_type
+            if location is not None:
+                row.location = location
+            if target_customer is not None:
+                row.target_customer = target_customer
+            if research_iteration is not None:
+                row.research_iteration = research_iteration
+            row.updated_at = _utcnow()
+            await session.commit()
+
+    async def replace_tasks(
+        self,
+        investigation_id: str,
+        tasks: list[tuple[str, str]],
+    ) -> None:
+        async with self._sessions() as session:
+            if await session.get(InvestigationRow, investigation_id) is None:
+                raise InvestigationNotFoundError(investigation_id)
+            await session.execute(
+                delete(ResearchTaskRow).where(
+                    ResearchTaskRow.investigation_id == investigation_id
+                )
+            )
+            for name, status in tasks:
+                session.add(
+                    ResearchTaskRow(
+                        investigation_id=investigation_id,
+                        task_type=name,
+                        status=status,
+                    )
+                )
+            await session.commit()
+
+    async def upsert_task(
+        self,
+        investigation_id: str,
+        task_type: str,
+        status: str,
+        *,
+        findings_count: int = 0,
+        error: str | None = None,
+    ) -> None:
+        async with self._sessions() as session:
+            result = await session.scalars(
+                select(ResearchTaskRow).where(
+                    ResearchTaskRow.investigation_id == investigation_id,
+                    ResearchTaskRow.task_type == task_type,
+                )
+            )
+            row = result.first()
+            if row is None:
+                session.add(
+                    ResearchTaskRow(
+                        investigation_id=investigation_id,
+                        task_type=task_type,
+                        status=status,
+                        findings_count=findings_count,
+                        error=error,
+                    )
+                )
+            else:
+                row.status = status
+                row.findings_count = findings_count
+                row.error = error
+            await session.commit()
+
+    async def evidence_count(self, investigation_id: str) -> int:
+        async with self._sessions() as session:
+            result = await session.scalars(
+                select(EvidenceRow.evidence_id).where(
+                    EvidenceRow.investigation_id == investigation_id
+                )
+            )
+            return len(list(result.all()))
 
     async def list_evidence(self, investigation_id: str) -> list[EvidenceRow]:
         async with self._sessions() as session:

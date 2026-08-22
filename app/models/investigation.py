@@ -19,6 +19,9 @@ class InvestigationRequest(BaseModel):
             "targeting office workers?"
         ],
     )
+    business_type: str | None = None
+    location: str | None = None
+    target_customer: str | None = None
 
     @field_validator("user_query")
     @classmethod

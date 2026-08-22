@@ -43,7 +43,14 @@ async def create_investigation(
 ) -> InvestigationCreatedResponse:
     """Create an investigation and start research in the background."""
     service = _service(request)
-    investigation_id, status = await service.create(payload.query)
+    investigation_id, status = await service.create(
+        query=payload.query,
+        research_question=payload.research_question,
+        business_type=payload.business_type,
+        location=payload.location,
+        target_customer=payload.target_customer,
+        budget=payload.budget,
+    )
     background_tasks.add_task(service.run_background, investigation_id)
     return InvestigationCreatedResponse(id=investigation_id, status=status)
 

@@ -28,25 +28,58 @@ class ErrorResponse(BaseModel):
 
 
 class CreateInvestigationRequest(BaseModel):
-    """Start a new investigation."""
+    """Start a new investigation from a question and optional form fields."""
 
-    query: str = Field(
-        ...,
-        min_length=1,
+    query: str | None = Field(
+        default=None,
         description="Natural-language business question",
         examples=[
             "Is Sector 62, Noida a good location for a cloud kitchen "
             "targeting office workers?"
         ],
     )
+    research_question: str | None = Field(
+        default=None,
+        description="Alias for query used by the web form",
+    )
+    business_type: str | None = None
+    location: str | None = None
+    target_customer: str | None = None
+    budget: str | None = None
 
-    @field_validator("query")
+    @field_validator(
+        "query",
+        "research_question",
+        "business_type",
+        "location",
+        "target_customer",
+        "budget",
+    )
     @classmethod
-    def normalize_query(cls, value: str) -> str:
+    def strip_optional(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
         normalized = value.strip()
-        if not normalized:
-            raise ValueError("query must not be empty or whitespace")
-        return normalized
+        return normalized or None
+
+
+class AgentProgress(BaseModel):
+    running: list[str] = Field(default_factory=list)
+    completed: list[str] = Field(default_factory=list)
+    failed: list[str] = Field(default_factory=list)
+    unavailable: list[str] = Field(default_factory=list)
+
+
+class InsightItem(BaseModel):
+    statement: str
+    evidence_ids: list[str] = Field(default_factory=list)
+
+
+class InsightsSummary(BaseModel):
+    observations: list[InsightItem] = Field(default_factory=list)
+    opportunities: list[InsightItem] = Field(default_factory=list)
+    risks: list[InsightItem] = Field(default_factory=list)
+    unknowns: list[InsightItem] = Field(default_factory=list)
 
 
 class AdditionalResearchRequest(BaseModel):
@@ -63,6 +96,10 @@ class InvestigationCreatedResponse(BaseModel):
 class InvestigationStatusResponse(BaseModel):
     id: str
     status: LifecycleStatus
+    stage: LifecycleStatus
+    agents: AgentProgress = Field(default_factory=AgentProgress)
+    evidence_count: int = 0
+    research_iteration: int = 0
     created_at: datetime
     updated_at: datetime
     error: str | None = None
@@ -94,15 +131,22 @@ class InvestigationResponse(BaseModel):
     id: str
     query: str
     status: LifecycleStatus
+    stage: LifecycleStatus
     business_type: str | None = None
     location: str | None = None
     objective: str | None = None
     target_customer: str | None = None
+    budget: str | None = None
     plan: list[str] = Field(default_factory=list)
     tasks: list[ResearchTaskResponse] = Field(default_factory=list)
+    agents: AgentProgress = Field(default_factory=AgentProgress)
+    evidence_count: int = 0
+    research_iteration: int = 0
     opportunity_score: float | None = None
     recommendation: str | None = None
     confidence: float | None = None
+    scores: ScoreSummary | None = None
+    insights: InsightsSummary | None = None
     critic: CriticSummary | None = None
     created_at: datetime
     updated_at: datetime
@@ -116,8 +160,12 @@ class EvidenceItemResponse(BaseModel):
     claim_kind: str
     source_name: str | None = None
     source_url: str | None = None
+    source_type: str | None = None
     retrieved_at: datetime
+    timestamp: datetime
     confidence: float
+    document_id: str | None = None
+    page: int | None = None
 
 
 class EvidenceListResponse(BaseModel):
@@ -134,6 +182,8 @@ class InvestigationReportResponse(BaseModel):
     plan: list[str] = Field(default_factory=list)
     scores: ScoreSummary | None = None
     recommendation: str | None = None
+    confidence: float | None = None
+    insights: InsightsSummary | None = None
     critic: CriticSummary | None = None
     report: str
     created_at: datetime

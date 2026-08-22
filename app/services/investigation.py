@@ -32,6 +32,9 @@ class InvestigationService:
         initial_state = create_initial_state(
             request.user_query,
             investigation_id=investigation_id,
+            business_type=request.business_type,
+            location=request.location,
+            target_customer=request.target_customer,
         )
         settings = get_settings()
         recursion_limit = max(50, int(settings.max_research_iterations) * 25)

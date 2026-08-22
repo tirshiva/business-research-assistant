@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.agents import (
     CompetitionAgent,
@@ -18,6 +19,7 @@ from app.config import get_settings
 from app.core.cache import InMemoryCache
 from app.core.http import AsyncHttpClient
 from app.core.logging import get_logger, setup_logging
+from app.core.monitoring import init_error_monitoring
 from app.db.session import create_engine, create_schema, create_session_factory
 from app.db.store import InvestigationStore, SqlAlchemyEvidenceRepository
 from app.evidence import EvidenceService, EvidenceValidator
@@ -36,6 +38,7 @@ from app.services.external import (
 )
 from app.services.investigation import InvestigationService
 from app.services.investigation_app import InvestigationAppService
+from app.services.progress import InvestigationProgressSink
 
 logger = get_logger(__name__)
 
@@ -45,6 +48,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan hooks for startup and shutdown."""
     settings = get_settings()
     setup_logging(settings.log_level)
+    init_error_monitoring(dsn=settings.sentry_dsn, environment=settings.app_env)
     logger.info(
         "Starting %s (env=%s)",
         settings.app_name,
@@ -137,6 +141,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         documents_agent=app.state.documents_agent,
         evidence_service=app.state.evidence_service,
         nominatim=nominatim,
+        progress_sink=InvestigationProgressSink(store),
     )
     investigation_graph = build_investigation_graph(deps=orchestration_deps)
     investigation_service = InvestigationService(graph=investigation_graph)
@@ -160,11 +165,26 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application instance."""
     settings = get_settings()
     setup_logging(settings.log_level)
+    production = settings.app_env.lower() == "production"
 
     application = FastAPI(
         title=settings.app_name,
         lifespan=lifespan,
+        docs_url=None if production else "/docs",
+        redoc_url=None if production else "/redoc",
+        openapi_url=None if production else "/openapi.json",
     )
+    origins = [
+        origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()
+    ]
+    if origins:
+        application.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_credentials=False,
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["Content-Type", "Accept"],
+        )
     register_exception_handlers(application)
     application.include_router(api_router)
     return application
